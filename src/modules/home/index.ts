@@ -188,6 +188,37 @@ export default class HomeModule implements ModuleInstance {
           </div>
         </div>
 
+        <!-- MODUL 4: EKSPONERING -->
+        <div class="fs-card" style="border-left: 3px solid var(--accent-exposure); cursor: pointer;" id="cardGoExposure">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--accent-exposure-glow); display: flex; align-items: center; justify-content: center; color: var(--accent-exposure);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="2" x2="12" y2="6"></line>
+                  <line x1="12" y1="18" x2="12" y2="22"></line>
+                  <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                  <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                  <line x1="2" y1="12" x2="6" y2="12"></line>
+                  <line x1="18" y1="12" x2="22" y2="12"></line>
+                </svg>
+              </div>
+              <div>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Eksponering</h2>
+                <span style="font-size: 11px; color: var(--accent-exposure); font-weight: 600; text-transform: uppercase;">Trekant, ND & Bulb-Timer</span>
+              </div>
+            </div>
+            <span class="fs-badge badge-exposure">100% Offline</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
+            Interaktiv eksponeringstrekant med EV-lysmåler og dynamisk histogram. Beregner sikker håndholdt lukkertid, astro 500-reglen, ND-filter stacking og integreret Bulb-nedtællingstimer med Dark Frame.
+          </p>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
+            <span>EV-lås, ND2–ND1000000 & Dark Frame (LENR)</span>
+            <span style="color: var(--accent-exposure); font-weight: 600;">Åbn Eksponering →</span>
+          </div>
+        </div>
+
         <!-- OM PROJEKTET & ASTRO NAT INFO -->
         <div class="fs-card" style="font-size: 12px; color: var(--text-dim); line-height: 1.5;">
           <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">Om Fotografiske Signaler PWA</strong>
@@ -222,11 +253,16 @@ export default class HomeModule implements ModuleInstance {
       Router.navigate('#/dof');
     });
 
+    this.container.querySelector('#cardGoExposure')?.addEventListener('click', () => {
+      Router.navigate('#/eksponering');
+    });
+
     this.container.querySelector('#btnResumeLast')?.addEventListener('click', () => {
       const settings = StorageService.getSettings();
       if (settings.lastModule === 'weather') Router.navigate('#/vejr');
       else if (settings.lastModule === 'sun') Router.navigate('#/sol');
       else if (settings.lastModule === 'dof') Router.navigate('#/dof');
+      else if (settings.lastModule === 'exposure') Router.navigate('#/eksponering');
     });
   }
 
@@ -234,6 +270,7 @@ export default class HomeModule implements ModuleInstance {
     if (id === 'weather') return 'Vejr';
     if (id === 'sun') return 'Sol';
     if (id === 'dof') return 'DOF';
+    if (id === 'exposure') return 'Eksponering';
     return id;
   }
 }

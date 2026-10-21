@@ -4,11 +4,12 @@
 > **Platform:** Mobil-first Progressive Web App (PWA)  
 > **Afsender:** Fotografiske Signaler  
 
-Fotografiske Signaler forener tre specialiserede fotografiske værktøjer i én samlet, moderne og installerbar Progressive Web App:
+Fotografiske Signaler forener fire specialiserede fotografiske værktøjer i én samlet, moderne og installerbar Progressive Web App:
 
 1. **Vejr** – Vejranalyse med 7-døgns prognoser fra Open-Meteo, morgentåge- og dis-vurdering, gylden time-kvalitet, stjerneklar natsky-score, sol- og månefaser samt time-for-time vejrdata.
 2. **Sol** – Solposition, skyggeberegning og kompositionsplanlægning med interaktiv roterbar 3D-søger (HTML5 Canvas Retina), 2D solurs-kompas og on-demand satellitkort (Leaflet).
 3. **DOF** – Fysisk dybdeskarphedsberegner med hyperfokaldistance, nær-/fjerngrænser, fordeling foran/bagved, sensor Circle of Confusion (CoC), diffraktionsanalyse samt simuleret EVF (Electronic Viewfinder) med realistisk baggrundssløring og bokeh-bobler.
+4. **Eksponering** – Fysisk eksponeringstrekant med dynamisk EV-lysmåler og histogramkurve, lukkertidsberegning med håndholdt tommelfingerregel og astro 500-regel, ND-filterberegning med stacking samt Bulb-nedtællingstimer med Dark Frame (LENR).
 
 ---
 

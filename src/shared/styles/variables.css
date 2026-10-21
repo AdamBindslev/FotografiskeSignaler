@@ -37,6 +37,10 @@
   --accent-dof-glow: rgba(16, 185, 129, 0.22);
   --accent-dof-gradient: linear-gradient(135deg, #34d399 0%, #059669 100%);
 
+  --accent-exposure: #a855f7;        /* Eksponering: Dyb violet/lilla */
+  --accent-exposure-glow: rgba(168, 85, 247, 0.22);
+  --accent-exposure-gradient: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
+
   /* Astro/Fotografiske fasedetaljer */
   --golden-primary: #f59e0b;
   --golden-glow: rgba(245, 158, 11, 0.25);
@@ -116,6 +120,10 @@ body.theme-night-red {
   --accent-dof: #ff3344;
   --accent-dof-glow: rgba(255, 50, 60, 0.25);
   --accent-dof-gradient: linear-gradient(135deg, #ff3344 0%, #990011 100%);
+
+  --accent-exposure: #ff3377;
+  --accent-exposure-glow: rgba(255, 51, 119, 0.25);
+  --accent-exposure-gradient: linear-gradient(135deg, #ff3377 0%, #990033 100%);
 
   --golden-primary: #ff4444;
   --golden-glow: rgba(255, 68, 68, 0.2);

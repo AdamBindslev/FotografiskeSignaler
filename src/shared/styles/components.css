@@ -114,6 +114,7 @@ body.theme-night-red .app-bottom-nav {
 .nav-item.active[data-module="weather"] { color: var(--accent-weather); }
 .nav-item.active[data-module="sun"] { color: var(--accent-sun); }
 .nav-item.active[data-module="dof"] { color: var(--accent-dof); }
+.nav-item.active[data-module="exposure"] { color: var(--accent-exposure); }
 
 .nav-item.active::after {
   content: "";
@@ -337,6 +338,11 @@ body.theme-night-red .quick-val-btn.active {
 .fs-badge.badge-dof {
   background: var(--accent-dof-glow);
   color: var(--accent-dof);
+}
+
+.fs-badge.badge-exposure {
+  background: var(--accent-exposure-glow);
+  color: var(--accent-exposure);
 }
 
 /* FORMULARELEMENTER: SLIDER & INPUT */

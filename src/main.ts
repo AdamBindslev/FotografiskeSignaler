@@ -99,6 +99,31 @@ ModuleRegistry.register({
   }
 });
 
+ModuleRegistry.register({
+  id: 'exposure',
+  name: 'Eksponering',
+  shortName: 'Eksp.',
+  description: 'Eksponeringstrekant, ND & bulb',
+  accentColor: '#a855f7',
+  route: '#/eksponering',
+  aliases: ['#/eksp', '#/fotoeksponering'],
+  iconSvg: `
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="2" x2="12" y2="6"></line>
+      <line x1="12" y1="18" x2="12" y2="22"></line>
+      <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+      <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+      <line x1="2" y1="12" x2="6" y2="12"></line>
+      <line x1="18" y1="12" x2="22" y2="12"></line>
+    </svg>
+  `,
+  loader: async () => {
+    const mod = await import('./modules/exposure/index.ts');
+    return new mod.default();
+  }
+});
+
 // 2. Initialiser AppShell
 const appRoot = document.getElementById('app');
 if (appRoot) {

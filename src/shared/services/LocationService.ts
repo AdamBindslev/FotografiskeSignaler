@@ -203,13 +203,12 @@ export class LocationService {
       const lat = parseFloat(coordMatch[1]);
       const lng = parseFloat(coordMatch[2]);
       if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        results.push({
+        return [{
           name: `Koordinater: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°Ø`,
           sub: 'Direkte koordinat-angivelse',
           lat,
           lng
-        });
-        seen.add(`${lat.toFixed(4)},${lng.toFixed(4)}`);
+        }];
       }
     }
 
