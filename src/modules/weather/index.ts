@@ -8,6 +8,7 @@ import { WeatherEngine, DayForecast, ForecastResult } from './calculations/weath
 import { LocationService, GeoLocation } from '../../shared/services/LocationService.ts';
 import { TimeService } from '../../shared/services/TimeService.ts';
 import { AstroCore } from '../../shared/astronomy/AstroCore.ts';
+import { LocationBar } from '../../shared/components/LocationBar.ts';
 import './weather.css';
 
 export default class WeatherModule implements ModuleInstance {
@@ -19,7 +20,7 @@ export default class WeatherModule implements ModuleInstance {
   private isCachedForecast: boolean = false;
   private cacheUpdatedAt: Date | null = null;
   private isLoading: boolean = false;
-
+  private locationBar: LocationBar | null = null;
   private unsubLocation: (() => void) | null = null;
 
   public async mount(container: HTMLElement): Promise<void> {
@@ -31,7 +32,6 @@ export default class WeatherModule implements ModuleInstance {
 
     this.unsubLocation = LocationService.subscribe(async (loc) => {
       this.currentLocation = loc;
-      this.updateLocationDisplay();
       await this.loadWeather(false);
     });
   }
@@ -49,10 +49,20 @@ export default class WeatherModule implements ModuleInstance {
   public destroy(): void {
     if (this.unsubLocation) {
       this.unsubLocation();
+      this.unsubLocation = null;
+    }
+    if (this.locationBar) {
+      this.locationBar.destroy();
+      this.locationBar = null;
     }
   }
 
   private render(): void {
+    if (this.locationBar) {
+      this.locationBar.destroy();
+      this.locationBar = null;
+    }
+
     this.container.innerHTML = `
       <div class="weather-container">
         <!-- Modul top -->
@@ -68,30 +78,8 @@ export default class WeatherModule implements ModuleInstance {
           </button>
         </div>
 
-        <!-- LOKATION -->
-        <div class="location-bar">
-          <div class="loc-info-group" id="btnOpenWeatherSearch" title="Søg lokation">
-            <span class="loc-main-name" id="weatherLocName">${this.currentLocation.name}</span>
-            <span class="loc-sub-coords" id="weatherLocCoords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø</span>
-          </div>
-          <div class="loc-actions">
-            <button class="fs-btn-icon" id="btnWeatherGps" title="Brug aktuel GPS-position" aria-label="Brug GPS">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="8"></circle>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- SØGE MODAL / DROPDOWN -->
-        <div id="weatherSearchDropdown" class="fs-card" style="display: none; margin-bottom: 0;">
-          <input type="text" id="weatherSearchInput" placeholder="Søg by eller naturområde i Danmark..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
-          <div id="weatherSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
-        </div>
+        <!-- FÆLLES LOKATION (§4.2, §9.1) -->
+        <div id="weatherLocationMount"></div>
 
         <!-- OFFLINE STATUS BANNER (§6.4) -->
         <div class="weather-status-banner" id="weatherStatusBanner">
@@ -108,77 +96,25 @@ export default class WeatherModule implements ModuleInstance {
         <div id="weatherSelectedDayWrap"></div>
       </div>
     `;
+
+    // Monter fælles LocationBar
+    const mountEl = this.container.querySelector('#weatherLocationMount') as HTMLElement | null;
+    if (mountEl) {
+      this.locationBar = new LocationBar({
+        container: mountEl,
+        accentClass: 'fs-btn-accent-weather',
+        onLocationChange: (loc) => {
+          this.currentLocation = loc;
+          this.loadWeather(false);
+        }
+      });
+    }
   }
 
   private attachEventListeners(): void {
     // Opdater knap
     this.container.querySelector('#btnWeatherRefresh')?.addEventListener('click', () => {
       this.loadWeather(true);
-    });
-
-    // GPS knap
-    this.container.querySelector('#btnWeatherGps')?.addEventListener('click', async () => {
-      try {
-        const btn = this.container.querySelector('#btnWeatherGps') as HTMLElement;
-        btn.style.opacity = '0.5';
-        const loc = await LocationService.requestGpsLocation();
-        this.currentLocation = loc;
-        this.updateLocationDisplay();
-        await this.loadWeather(true);
-        btn.style.opacity = '1';
-      } catch (err) {
-        alert((err as Error).message);
-      }
-    });
-
-    // Søgning
-    const searchDropdown = this.container.querySelector('#weatherSearchDropdown') as HTMLElement;
-    const searchInput = this.container.querySelector('#weatherSearchInput') as HTMLInputElement;
-    const searchResults = this.container.querySelector('#weatherSearchResults') as HTMLElement;
-
-    this.container.querySelector('#btnOpenWeatherSearch')?.addEventListener('click', () => {
-      const isVisible = searchDropdown.style.display === 'block';
-      searchDropdown.style.display = isVisible ? 'none' : 'block';
-      if (!isVisible) {
-        searchInput.focus();
-      }
-    });
-
-    let searchTimer: any = null;
-    searchInput?.addEventListener('input', () => {
-      clearTimeout(searchTimer);
-      const val = searchInput.value.trim();
-      if (val.length < 2) {
-        searchResults.innerHTML = '';
-        return;
-      }
-      searchTimer = setTimeout(async () => {
-        const results = await LocationService.search(val);
-        searchResults.innerHTML = results
-          .map(
-            (r) => `
-          <button class="fs-btn" data-lat="${r.lat}" data-lng="${r.lng}" data-name="${r.name}" style="text-align:left; justify-content:space-between; width:100%; padding:8px 12px;">
-            <strong>${r.name}</strong>
-            <span style="font-size:11px;color:var(--text-muted);">${r.sub}</span>
-          </button>
-        `
-          )
-          .join('');
-
-        searchResults.querySelectorAll('[data-lat]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const lat = Number((btn as HTMLElement).dataset.lat);
-            const lng = Number((btn as HTMLElement).dataset.lng);
-            const name = (btn as HTMLElement).dataset.name || 'Valgt by';
-            this.currentLocation = LocationService.setLocation({ lat, lng, name, source: 'search' });
-            this.updateLocationDisplay();
-            searchDropdown.style.display = 'none';
-            searchInput.value = '';
-            searchResults.innerHTML = '';
-            this.loadWeather(false);
-          });
-        });
-      }, 300);
     });
   }
 
@@ -329,9 +265,6 @@ export default class WeatherModule implements ModuleInstance {
           <div class="photo-card-desc">${fog.text}</div>
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Dugpunkt: Δ${fog.avgSpread}°C • Fugt: ${fog.avgHumidity}% • Vind: ${fog.avgWind} m/s</span>
-            <button class="btn-goto-fotosol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}">
-              Se lysretning i FotoSol →
-            </button>
           </div>
         </div>
 
@@ -377,9 +310,6 @@ export default class WeatherModule implements ModuleInstance {
           <div class="photo-card-desc">${astro.text}</div>
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">${astro.moonImpact}</span>
-            <button class="btn-goto-fotosol" data-time="${sun.nadir ? sun.nadir.getTime() : day.date.getTime()}">
-              Se lysretning i FotoSol →
-            </button>
           </div>
         </div>
       </div>

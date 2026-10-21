@@ -1,0 +1,297 @@
+/**
+ * LocationBar.ts - Fælles, ensartet lokationskomponent for Hjem, FotoVejr og FotoSol (§4.2, §9.1)
+ * Indeholder lokationsvisning, GPS-knap, DAWA/Open-Meteo adressesøgning,
+ * samt oprettelse, valg og administration af brugerens egne gemte fotospots.
+ */
+
+import { LocationService, GeoLocation, PhotoSpot } from '../services/LocationService.ts';
+
+export interface LocationBarOptions {
+  container: HTMLElement;
+  onLocationChange?: (loc: GeoLocation) => void;
+  accentClass?: string;
+}
+
+export class LocationBar {
+  private container: HTMLElement;
+  private onLocationChange?: (loc: GeoLocation) => void;
+  private accentClass: string;
+  private currentLocation: GeoLocation;
+  private searchOpen: boolean = false;
+  private showSaveInput: boolean = false;
+  private unsubLocation: (() => void) | null = null;
+  private debounceTimer: any = null;
+
+  constructor(options: LocationBarOptions) {
+    this.container = options.container;
+    this.onLocationChange = options.onLocationChange;
+    this.accentClass = options.accentClass || 'fs-btn-accent-sun';
+    this.currentLocation = LocationService.getLocation();
+
+    this.render();
+
+    this.unsubLocation = LocationService.subscribe((loc) => {
+      this.currentLocation = loc;
+      this.render();
+      if (this.onLocationChange) {
+        this.onLocationChange(loc);
+      }
+    });
+  }
+
+  public destroy(): void {
+    if (this.unsubLocation) {
+      this.unsubLocation();
+      this.unsubLocation = null;
+    }
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+  }
+
+  public render(): void {
+    const savedSpots: PhotoSpot[] = LocationService.getSavedSpots();
+
+    this.container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: var(--space-2); width: 100%;">
+        <!-- LOKATIONS-BJÆLKE -->
+        <div class="location-bar">
+          <div class="loc-info-group" id="locBarToggle" title="Vælg eller søg lokation" style="cursor: pointer;">
+            <span class="loc-main-name">📍 ${this.currentLocation.name}</span>
+            <span class="loc-sub-coords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø • Tryk for at skifte</span>
+          </div>
+          <div class="loc-actions">
+            <button class="fs-btn-icon" id="locBarGpsBtn" title="Brug aktuel GPS-position" aria-label="Brug GPS">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="8"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- SØGEPANEL & GEMTE FOTOSPOTS -->
+        <div id="locBarDropdown" class="fs-card location-dropdown-panel" style="display: ${this.searchOpen ? 'block' : 'none'}; margin-bottom: 0;">
+          <!-- Søgefelt med DAWA & Open-Meteo -->
+          <div style="margin-bottom: 12px;">
+            <input type="text" id="locBarSearchInput" placeholder="Søg adresse, vejnavn, by eller område..." style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
+            <div id="locBarSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
+          </div>
+
+          <!-- Gem aktuel position som nyt spot -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-bottom: 12px;">
+            ${
+              this.showSaveInput
+                ? `
+              <div style="display: flex; flex-direction: column; gap: 8px; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-sun);">
+                <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Navngiv fotospot:</label>
+                <input type="text" id="locBarInputSpotName" value="${this.currentLocation.name}" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--border-highlight); background: var(--bg-surface-elevated); color: var(--text-main); font-size: 13px;">
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                  <button class="fs-btn" id="locBarBtnCancelSaveSpot" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">Annuller</button>
+                  <button class="fs-btn ${this.accentClass}" id="locBarBtnConfirmSaveSpot" style="padding: 4px 12px; font-size: 11px; min-height: 28px;">Gem spot</button>
+                </div>
+              </div>
+            `
+                : `
+              <button class="fs-btn" id="locBarBtnTriggerSaveSpot" style="width: 100%; justify-content: center; gap: 6px; background: var(--bg-surface-elevated); border: 1px dashed var(--accent-sun); color: var(--accent-sun); font-size: 12px; min-height: 36px;">
+                ⭐ Gem aktuel lokation som fotospot
+              </button>
+            `
+            }
+          </div>
+
+          <!-- Brugerens gemte fotospots -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">Dine Gemte Fotospots (${savedSpots.length}):</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${
+                savedSpots.length === 0
+                  ? `
+                <div style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 12px 6px; line-height: 1.4;">
+                  Ingen gemte fotospots endnu.<br>Tryk på <em>"Gem aktuel lokation"</em> herover for at tilføje dit første spot.
+                </div>
+              `
+                  : savedSpots
+                      .map(
+                        (spot) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-elevated); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); transition: border-color 0.15s ease;">
+                  <div style="cursor: pointer; flex: 1; overflow: hidden;" data-select-spot="${spot.id}">
+                    <strong style="color: var(--text-main); font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${spot.name}</strong>
+                    <span style="color: var(--text-muted); font-size: 11px; font-family: var(--font-mono);">${spot.lat.toFixed(4)}°N, ${spot.lng.toFixed(4)}°Ø</span>
+                  </div>
+                  <button class="fs-btn-icon" data-delete-spot="${spot.id}" title="Slet spot" style="width: 28px; height: 28px; border: none; color: var(--text-dim); background: transparent; cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              `
+                      )
+                      .join('')
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.attachEventListeners();
+  }
+
+  private attachEventListeners(): void {
+    // Åbn/luk dropdown
+    this.container.querySelector('#locBarToggle')?.addEventListener('click', () => {
+      this.searchOpen = !this.searchOpen;
+      this.render();
+      if (this.searchOpen) {
+        setTimeout(() => {
+          (this.container.querySelector('#locBarSearchInput') as HTMLInputElement)?.focus();
+        }, 50);
+      }
+    });
+
+    // GPS knap
+    this.container.querySelector('#locBarGpsBtn')?.addEventListener('click', async () => {
+      const btn = this.container.querySelector('#locBarGpsBtn') as HTMLElement;
+      if (btn) btn.style.opacity = '0.5';
+      try {
+        const loc = await LocationService.requestGpsLocation();
+        this.currentLocation = loc;
+        this.searchOpen = false;
+        this.render();
+      } catch (err) {
+        alert((err as Error).message);
+      } finally {
+        if (btn) btn.style.opacity = '1';
+      }
+    });
+
+    // Søgefelt med DAWA & Open-Meteo
+    const searchInput = this.container.querySelector('#locBarSearchInput') as HTMLInputElement | null;
+    const resultsContainer = this.container.querySelector('#locBarSearchResults') as HTMLElement | null;
+
+    searchInput?.addEventListener('input', () => {
+      const q = searchInput.value.trim();
+      if (this.debounceTimer) clearTimeout(this.debounceTimer);
+
+      if (q.length < 2) {
+        if (resultsContainer) resultsContainer.innerHTML = '';
+        return;
+      }
+
+      this.debounceTimer = setTimeout(async () => {
+        if (resultsContainer) {
+          resultsContainer.innerHTML = `
+            <div style="font-size:12px;color:var(--text-muted);padding:8px;text-align:center;">
+              Søger i danske adresser og områder...
+            </div>
+          `;
+        }
+        const matches = await LocationService.search(q);
+        if (!resultsContainer) return;
+
+        if (matches.length === 0) {
+          resultsContainer.innerHTML = `
+            <div style="font-size:12px;color:var(--text-dim);padding:8px;text-align:center;">
+              Ingen steder fundet for "${q}"
+            </div>
+          `;
+          return;
+        }
+
+        resultsContainer.innerHTML = matches
+          .map(
+            (m, i) => `
+          <div class="search-result-item" data-idx="${i}" style="display:flex;flex-direction:column;padding:8px 10px;background:var(--bg-surface-elevated);border-radius:var(--radius-xs);cursor:pointer;border:1px solid var(--border-subtle);transition:all 0.1s ease;">
+            <strong style="color:var(--text-main);font-size:13px;">${m.name}</strong>
+            <span style="color:var(--text-muted);font-size:11px;">${m.sub} • <span style="font-family:var(--font-mono);">${m.lat.toFixed(4)}°N, ${m.lng.toFixed(4)}°Ø</span></span>
+          </div>
+        `
+          )
+          .join('');
+
+        resultsContainer.querySelectorAll('.search-result-item').forEach((item) => {
+          item.addEventListener('click', () => {
+            const idx = Number((item as HTMLElement).dataset.idx);
+            const chosen = matches[idx];
+            if (chosen) {
+              LocationService.setLocation({
+                lat: chosen.lat,
+                lng: chosen.lng,
+                name: chosen.name,
+                sub: chosen.sub,
+                source: 'search'
+              });
+              this.searchOpen = false;
+              this.render();
+            }
+          });
+        });
+      }, 250);
+    });
+
+    // Trigger gem fotospot
+    this.container.querySelector('#locBarBtnTriggerSaveSpot')?.addEventListener('click', () => {
+      this.showSaveInput = true;
+      this.render();
+      setTimeout(() => {
+        const input = this.container.querySelector('#locBarInputSpotName') as HTMLInputElement | null;
+        input?.focus();
+        input?.select();
+      }, 50);
+    });
+
+    this.container.querySelector('#locBarBtnCancelSaveSpot')?.addEventListener('click', () => {
+      this.showSaveInput = false;
+      this.render();
+    });
+
+    this.container.querySelector('#locBarBtnConfirmSaveSpot')?.addEventListener('click', () => {
+      const input = this.container.querySelector('#locBarInputSpotName') as HTMLInputElement | null;
+      const spotName = input?.value || this.currentLocation.name;
+      LocationService.saveSpot(spotName, this.currentLocation.lat, this.currentLocation.lng);
+      this.showSaveInput = false;
+      this.render();
+    });
+
+    // Vælg gemt fotospot
+    this.container.querySelectorAll('[data-select-spot]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const spotId = el.getAttribute('data-select-spot');
+        const spots = LocationService.getSavedSpots();
+        const found = spots.find((s) => s.id === spotId);
+        if (found) {
+          LocationService.setLocation({
+            lat: found.lat,
+            lng: found.lng,
+            name: found.name,
+            sub: 'Gemt fotospot',
+            source: 'search'
+          });
+          this.searchOpen = false;
+          this.render();
+        }
+      });
+    });
+
+    // Slet gemt fotospot
+    this.container.querySelectorAll('[data-delete-spot]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const spotId = btn.getAttribute('data-delete-spot');
+        if (spotId && confirm('Vil du slette dette gemte fotospot?')) {
+          LocationService.deleteSpot(spotId);
+          this.render();
+        }
+      });
+    });
+  }
+}

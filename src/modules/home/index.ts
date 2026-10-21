@@ -4,40 +4,42 @@
 
 import { ModuleInstance } from '../../app/ModuleRegistry.ts';
 import { Router } from '../../app/Router.ts';
-import { LocationService, GeoLocation, PhotoSpot } from '../../shared/services/LocationService.ts';
+import { LocationService, GeoLocation } from '../../shared/services/LocationService.ts';
 import { TimeService } from '../../shared/services/TimeService.ts';
 import { StorageService } from '../../shared/services/StorageService.ts';
 import { AstroCore } from '../../shared/astronomy/AstroCore.ts';
+import { LocationBar } from '../../shared/components/LocationBar.ts';
 
 export default class HomeModule implements ModuleInstance {
   private container!: HTMLElement;
   private currentLocation: GeoLocation = LocationService.getLocation();
+  private locationBar: LocationBar | null = null;
   private unsubLocation: (() => void) | null = null;
-  private searchOpen: boolean = false;
-  private showSaveInput: boolean = false;
 
   public mount(container: HTMLElement): void {
     this.container = container;
     this.currentLocation = LocationService.getLocation();
     this.render();
-    this.attachEventListeners();
 
     this.unsubLocation = LocationService.subscribe((loc) => {
       this.currentLocation = loc;
       this.render();
-      this.attachEventListeners();
     });
   }
 
   public onActivate(): void {
     this.currentLocation = LocationService.getLocation();
     this.render();
-    this.attachEventListeners();
   }
 
   public destroy(): void {
     if (this.unsubLocation) {
       this.unsubLocation();
+      this.unsubLocation = null;
+    }
+    if (this.locationBar) {
+      this.locationBar.destroy();
+      this.locationBar = null;
     }
   }
 
@@ -48,7 +50,11 @@ export default class HomeModule implements ModuleInstance {
     const sunTimes = AstroCore.getSunTimes(now, this.currentLocation.lat, this.currentLocation.lng);
     const lightPhase = AstroCore.getLightPhase(sunPos.altitude);
     const lastMod = settings.lastModule !== 'home' ? settings.lastModule : null;
-    const savedSpots: PhotoSpot[] = LocationService.getSavedSpots();
+
+    if (this.locationBar) {
+      this.locationBar.destroy();
+      this.locationBar = null;
+    }
 
     this.container.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
@@ -58,7 +64,7 @@ export default class HomeModule implements ModuleInstance {
             <img src="fotografiske-signaler-wordmark.png" alt="Fotografiske Signaler" style="max-height: 48px; width: auto;" onerror="this.style.display='none'">
           </div>
           <h1 style="font-size: 1.4rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">
-            Fotografiske Signaler
+            Fotografisk værktøjskasse
           </h1>
           <p style="font-size: 13px; color: var(--text-muted); max-width: 480px; margin: 0 auto; line-height: 1.45;">
             Professionel fotografisk værktøjskasse. Vejranalyse, sol- og lysretning samt optiske DOF-beregninger samlet i én mobiloptimeret PWA.
@@ -74,92 +80,8 @@ export default class HomeModule implements ModuleInstance {
           </div>
         </div>
 
-        <!-- LOKATIONSVÆLGER PÅ STARTSKÆRMEN (§4.2, §9.1) -->
-        <div class="location-bar">
-          <div class="loc-info-group" id="btnOpenHomeLocation" title="Vælg eller søg lokation" style="cursor: pointer;">
-            <span class="loc-main-name" id="homeLocName">📍 ${this.currentLocation.name}</span>
-            <span class="loc-sub-coords" id="homeLocCoords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø • Tryk for at skifte</span>
-          </div>
-          <div class="loc-actions">
-            <button class="fs-btn-icon" id="btnHomeGps" title="Brug aktuel GPS-position" aria-label="Brug GPS">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="8"></circle>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- SØGEPANEL & GEMTE FOTOSPOTS -->
-        <div id="homeSearchDropdown" class="fs-card" style="display: ${this.searchOpen ? 'block' : 'none'}; margin-bottom: 0;">
-          <!-- Søgefelt -->
-          <div style="margin-bottom: 12px;">
-            <input type="text" id="homeSearchInput" placeholder="Søg by, postnr eller naturområde i Danmark..." style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
-            <div id="homeSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
-          </div>
-
-          <!-- Gem aktuel position som nyt spot -->
-          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-bottom: 12px;">
-            ${
-              this.showSaveInput
-                ? `
-              <div style="display: flex; flex-direction: column; gap: 8px; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-sun);">
-                <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Navngiv fotospot:</label>
-                <input type="text" id="inputSpotName" value="${this.currentLocation.name}" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--border-highlight); background: var(--bg-surface-elevated); color: var(--text-main); font-size: 13px;">
-                <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                  <button class="fs-btn" id="btnCancelSaveSpot" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">Annuller</button>
-                  <button class="fs-btn fs-btn-accent-sun" id="btnConfirmSaveSpot" style="padding: 4px 12px; font-size: 11px; min-height: 28px;">Gem spot</button>
-                </div>
-              </div>
-            `
-                : `
-              <button class="fs-btn" id="btnTriggerSaveSpot" style="width: 100%; justify-content: center; gap: 6px; background: var(--bg-surface-elevated); border: 1px dashed var(--accent-sun); color: var(--accent-sun); font-size: 12px; min-height: 36px;">
-                ⭐ Gem aktuel lokation som fotospot
-              </button>
-            `
-            }
-          </div>
-
-          <!-- Dine gemte fotospots liste -->
-          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">Dine Gemte Fotospots (${savedSpots.length}):</span>
-            </div>
-
-            <div id="homeSavedSpotsList" style="display: flex; flex-direction: column; gap: 6px;">
-              ${
-                savedSpots.length === 0
-                  ? `
-                <div style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 12px 6px; line-height: 1.4;">
-                  Ingen gemte fotospots endnu.<br>Tryk på <em>"Gem aktuel lokation"</em> herover for at tilføje dit første spot.
-                </div>
-              `
-                  : savedSpots
-                      .map(
-                        (spot) => `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-elevated); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); transition: border-color 0.15s ease;">
-                  <div style="cursor: pointer; flex: 1; overflow: hidden;" data-select-spot="${spot.id}">
-                    <strong style="color: var(--text-main); font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${spot.name}</strong>
-                    <span style="color: var(--text-muted); font-size: 11px; font-family: var(--font-mono);">${spot.lat.toFixed(4)}°N, ${spot.lng.toFixed(4)}°Ø</span>
-                  </div>
-                  <button class="fs-btn-icon" data-delete-spot="${spot.id}" title="Slet spot" style="width: 28px; height: 28px; border: none; color: var(--text-dim); background: transparent; cursor: pointer;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 6h18"></path>
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                </div>
-              `
-                      )
-                      .join('')
-              }
-            </div>
-          </div>
-        </div>
+        <!-- FÆLLES LOKATIONSVÆLGER (§4.2, §9.1) -->
+        <div id="homeLocationMount"></div>
 
         ${
           lastMod
@@ -265,6 +187,17 @@ export default class HomeModule implements ModuleInstance {
         </div>
       </div>
     `;
+
+    // Monter fælles LocationBar
+    const mountEl = this.container.querySelector('#homeLocationMount') as HTMLElement | null;
+    if (mountEl) {
+      this.locationBar = new LocationBar({
+        container: mountEl,
+        accentClass: 'fs-btn-accent-sun'
+      });
+    }
+
+    this.attachEventListeners();
   }
 
   private attachEventListeners(): void {
@@ -286,129 +219,6 @@ export default class HomeModule implements ModuleInstance {
       if (settings.lastModule === 'weather') Router.navigate('#/fotovejr');
       else if (settings.lastModule === 'sun') Router.navigate('#/fotosol');
       else if (settings.lastModule === 'dof') Router.navigate('#/fotodof');
-    });
-
-    // Lokationshåndtering på Hjemmeskærmen
-    const searchDropdown = this.container.querySelector('#homeSearchDropdown') as HTMLElement;
-    const searchInput = this.container.querySelector('#homeSearchInput') as HTMLInputElement;
-    const searchResults = this.container.querySelector('#homeSearchResults') as HTMLElement;
-
-    this.container.querySelector('#btnOpenHomeLocation')?.addEventListener('click', () => {
-      this.searchOpen = !this.searchOpen;
-      searchDropdown.style.display = this.searchOpen ? 'block' : 'none';
-      if (this.searchOpen) {
-        searchInput?.focus();
-      }
-    });
-
-    // GPS-knap på startskærmen
-    this.container.querySelector('#btnHomeGps')?.addEventListener('click', async () => {
-      try {
-        const btn = this.container.querySelector('#btnHomeGps') as HTMLElement;
-        btn.style.opacity = '0.5';
-        const loc = await LocationService.requestGpsLocation();
-        this.currentLocation = loc;
-        this.searchOpen = false;
-        this.render();
-        this.attachEventListeners();
-        btn.style.opacity = '1';
-      } catch (err) {
-        alert((err as Error).message);
-      }
-    });
-
-    // Gem aktuel position trigger
-    this.container.querySelector('#btnTriggerSaveSpot')?.addEventListener('click', () => {
-      this.showSaveInput = true;
-      this.render();
-      this.attachEventListeners();
-      const input = this.container.querySelector('#inputSpotName') as HTMLInputElement;
-      input?.focus();
-      input?.select();
-    });
-
-    this.container.querySelector('#btnCancelSaveSpot')?.addEventListener('click', () => {
-      this.showSaveInput = false;
-      this.render();
-      this.attachEventListeners();
-    });
-
-    this.container.querySelector('#btnConfirmSaveSpot')?.addEventListener('click', () => {
-      const input = this.container.querySelector('#inputSpotName') as HTMLInputElement;
-      const spotName = input?.value || this.currentLocation.name;
-      LocationService.saveSpot(spotName, this.currentLocation.lat, this.currentLocation.lng);
-      this.showSaveInput = false;
-      this.render();
-      this.attachEventListeners();
-    });
-
-    // Vælg et gemt spot
-    this.container.querySelectorAll('[data-select-spot]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const spotId = (btn as HTMLElement).dataset.selectSpot;
-        const spots = LocationService.getSavedSpots();
-        const spot = spots.find((s) => s.id === spotId);
-        if (spot) {
-          this.currentLocation = LocationService.setLocation({
-            lat: spot.lat,
-            lng: spot.lng,
-            name: spot.name,
-            source: 'search'
-          });
-          this.searchOpen = false;
-          this.render();
-          this.attachEventListeners();
-        }
-      });
-    });
-
-    // Slet et gemt spot
-    this.container.querySelectorAll('[data-delete-spot]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const spotId = (btn as HTMLElement).dataset.deleteSpot;
-        if (spotId && confirm('Vil du fjerne dette gemte fotospot?')) {
-          LocationService.deleteSpot(spotId);
-          this.render();
-          this.attachEventListeners();
-        }
-      });
-    });
-
-    // Søgning efter byer/steder med debounce
-    let searchTimer: any = null;
-    searchInput?.addEventListener('input', () => {
-      clearTimeout(searchTimer);
-      const val = searchInput.value.trim();
-      if (val.length < 2) {
-        searchResults.innerHTML = '';
-        return;
-      }
-      searchTimer = setTimeout(async () => {
-        const results = await LocationService.search(val);
-        searchResults.innerHTML = results
-          .map(
-            (r) => `
-          <button class="fs-btn" data-lat="${r.lat}" data-lng="${r.lng}" data-name="${r.name}" style="text-align:left; justify-content:space-between; width:100%; padding:8px 12px;">
-            <strong>${r.name}</strong>
-            <span style="font-size:11px;color:var(--text-muted);">${r.sub}</span>
-          </button>
-        `
-          )
-          .join('');
-
-        searchResults.querySelectorAll('[data-lat]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const lat = Number((btn as HTMLElement).dataset.lat);
-            const lng = Number((btn as HTMLElement).dataset.lng);
-            const name = (btn as HTMLElement).dataset.name || 'Valgt by';
-            this.currentLocation = LocationService.setLocation({ lat, lng, name, source: 'search' });
-            this.searchOpen = false;
-            this.render();
-            this.attachEventListeners();
-          });
-        });
-      }, 300);
     });
   }
 

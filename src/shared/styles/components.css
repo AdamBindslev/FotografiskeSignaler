@@ -38,24 +38,16 @@ body.theme-night-red .app-header {
   object-fit: contain;
 }
 
-.header-title-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
-.header-title {
-  font-size: 14px;
+.header-badge {
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-main);
-  line-height: 1.1;
-}
-
-.header-subtitle {
-  font-size: 11px;
   color: var(--text-muted);
-  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
 }
 
 .header-actions {
@@ -245,6 +237,48 @@ body.theme-night-red .fs-btn-icon.active {
   border-color: #ff4d4d;
 }
 
+/* HURTIG-KNAPPER / PRESET-KNAPPER (FotoSol, FotoDOF m.fl.) */
+.quick-val-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  transition: all var(--trans-fast);
+  user-select: none;
+}
+
+.quick-val-btn:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-highlight);
+  color: #ffffff;
+}
+
+.quick-val-btn.active {
+  background: var(--bg-surface);
+  color: var(--accent-sun);
+  border-color: var(--accent-sun);
+}
+
+body.theme-night-red .quick-val-btn {
+  background: #140404;
+  border-color: #3d0c0c;
+  color: var(--text-main);
+}
+
+body.theme-night-red .quick-val-btn.active {
+  color: #ff4d4d;
+  border-color: #ff4d4d;
+}
+
 /* SEGMENTERET VÆLGER / TABS (§5.4) */
 .fs-segmented-control {
   display: flex;
@@ -381,4 +415,50 @@ body.theme-night-red input[type="range"]::-webkit-slider-thumb {
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* FÆLLES LOKATIONS-KOMPONENT (§4.2, §9.1) */
+.location-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  gap: 8px;
+  user-select: none;
+}
+
+.loc-info-group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  flex: 1;
+}
+
+.loc-main-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loc-sub-coords {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.loc-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-dropdown-panel {
+  animation: slideUp 0.2s ease;
 }

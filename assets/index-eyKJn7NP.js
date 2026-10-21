@@ -1,4 +1,4 @@
-import{S as u,R as l}from"./index-BOCmCcGk.js";import{L as i,A as c,T as g}from"./AstroCore-CoxmUvae.js";const m=[{name:"Møns Klint",sub:"Kridtskrænter & Mælkevejen",lat:54.9667,lng:12.55},{name:"Skagen Grenen",sub:"Solnedgang & to have",lat:57.7441,lng:10.6478},{name:"Rubjerg Knude",sub:"Sandklit & Fyr",lat:57.4497,lng:9.7739},{name:"Hammershus, Bornholm",sub:"Klippekyst & Borgruin",lat:55.2728,lng:14.7544},{name:"Vadehavet, Rømø",sub:"Sort Sol & uendelig horisont",lat:55.1389,lng:8.5417},{name:"København Havn",sub:"Nyhavn & Byarkitektur",lat:55.6795,lng:12.591}];class y{container;currentLocation=i.getLocation();unsubLocation=null;searchOpen=!1;mount(n){this.container=n,this.currentLocation=i.getLocation(),this.render(),this.attachEventListeners(),this.unsubLocation=i.subscribe(o=>{this.currentLocation=o,this.render(),this.attachEventListeners()})}onActivate(){this.currentLocation=i.getLocation(),this.render(),this.attachEventListeners()}destroy(){this.unsubLocation&&this.unsubLocation()}render(){const n=u.getSettings(),o=new Date,a=c.getSunPosition(o,this.currentLocation.lat,this.currentLocation.lng),r=c.getSunTimes(o,this.currentLocation.lat,this.currentLocation.lng),e=c.getLightPhase(a.altitude),s=n.lastModule!=="home"?n.lastModule:null;this.container.innerHTML=`
+import{S as p,R as o}from"./index-C3RqY6dK.js";import{L as r,A as i,T as a,a as g}from"./LocationBar-DkIG-lFh.js";class h{container;currentLocation=r.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=r.getLocation(),this.render(),this.unsubLocation=r.subscribe(n=>{this.currentLocation=n,this.render()})}onActivate(){this.currentLocation=r.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}render(){const e=p.getSettings(),n=new Date,t=i.getSunPosition(n,this.currentLocation.lat,this.currentLocation.lng),s=i.getSunTimes(n,this.currentLocation.lat,this.currentLocation.lng),l=i.getLightPhase(t.altitude),c=e.lastModule!=="home"?e.lastModule:null;this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
         <!-- VELKOMST HERO -->
         <div class="fs-card" style="padding: var(--space-5); text-align: center; border-color: var(--border-highlight); background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(15, 18, 23, 0.9) 100%);">
@@ -6,7 +6,7 @@ import{S as u,R as l}from"./index-BOCmCcGk.js";import{L as i,A as c,T as g}from"
             <img src="fotografiske-signaler-wordmark.png" alt="Fotografiske Signaler" style="max-height: 48px; width: auto;" onerror="this.style.display='none'">
           </div>
           <h1 style="font-size: 1.4rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">
-            Fotografiske Signaler
+            Fotografisk værktøjskasse
           </h1>
           <p style="font-size: 13px; color: var(--text-muted); max-width: 480px; margin: 0 auto; line-height: 1.45;">
             Professionel fotografisk værktøjskasse. Vejranalyse, sol- og lysretning samt optiske DOF-beregninger samlet i én mobiloptimeret PWA.
@@ -14,56 +14,22 @@ import{S as u,R as l}from"./index-BOCmCcGk.js";import{L as i,A as c,T as g}from"
 
           <!-- Aktuel status bar med solinfo -->
           <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 12px; flex-wrap: wrap;">
-            <span style="color: ${e.color}; font-weight: 700;">● ${e.name}</span>
+            <span style="color: ${l.color}; font-weight: 700;">● ${l.name}</span>
             <span>•</span>
-            <span>Sol ${a.altitude>=0?"+":""}${a.altitude.toFixed(0)}° (${a.azimuth.toFixed(0)}° ${c.getCompassDirection(a.azimuth)})</span>
+            <span>Sol ${t.altitude>=0?"+":""}${t.altitude.toFixed(0)}° (${t.azimuth.toFixed(0)}° ${i.getCompassDirection(t.azimuth)})</span>
             <span>•</span>
-            <span>Solnedgang: ${g.formatTime(r.sunset)}</span>
+            <span>Solnedgang: ${a.formatTime(s.sunset)}</span>
           </div>
         </div>
 
-        <!-- LOKATIONSVÆLGER PÅ STARTSKÆRMEN (§4.2, §9.1) -->
-        <div class="location-bar">
-          <div class="loc-info-group" id="btnOpenHomeLocation" title="Vælg eller søg lokation" style="cursor: pointer;">
-            <span class="loc-main-name" id="homeLocName">📍 ${this.currentLocation.name}</span>
-            <span class="loc-sub-coords" id="homeLocCoords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø • Tryk for at skifte</span>
-          </div>
-          <div class="loc-actions">
-            <button class="fs-btn-icon" id="btnHomeGps" title="Brug aktuel GPS-position" aria-label="Brug GPS">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="8"></circle>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
+        <!-- FÆLLES LOKATIONSVÆLGER (§4.2, §9.1) -->
+        <div id="homeLocationMount"></div>
 
-        <!-- SØGEPANEL MED FORSLAG OG POPULÆRE FOTOSPOTS -->
-        <div id="homeSearchDropdown" class="fs-card" style="display: ${this.searchOpen?"block":"none"}; margin-bottom: 0;">
-          <input type="text" id="homeSearchInput" placeholder="Søg by, postnr eller naturområde..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
-          <div id="homeSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
-          
-          <!-- Populære fotospots genveje -->
-          <div style="margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Populære Fotospots i Danmark:</span>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-              ${m.map(t=>`
-                <button class="quick-val-btn" data-spot-lat="${t.lat}" data-spot-lng="${t.lng}" data-spot-name="${t.name}" style="padding: 5px 9px; font-size: 11px;">
-                  📍 ${t.name}
-                </button>
-              `).join("")}
-            </div>
-          </div>
-        </div>
-
-        ${s?`
+        ${c?`
           <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-surface-elevated); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
             <span style="font-size:12px; color:var(--text-muted);">Sidst anvendte værktøj:</span>
             <button class="fs-btn" id="btnResumeLast" style="padding:4px 12px; font-size:12px; min-height:28px;">
-              Gå til ${this.getModuleName(s)} →
+              Gå til ${this.getModuleName(c)} →
             </button>
           </div>
         `:""}
@@ -88,7 +54,7 @@ import{S as u,R as l}from"./index-BOCmCcGk.js";import{L as i,A as c,T as g}from"
             7-døgns fotografisk vejranalyse for ${this.currentLocation.name}. Beregner morgentåge, gylden time-kvalitet, skydække i 3 lag og stjerneklart astro-vindue.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Solopgang: ${g.formatTime(r.sunrise)} • Solnedgang: ${g.formatTime(r.sunset)}</span>
+            <span>Solopgang: ${a.formatTime(s.sunrise)} • Solnedgang: ${a.formatTime(s.sunset)}</span>
             <span style="color: var(--accent-weather); font-weight: 600;">Åbn FotoVejr →</span>
           </div>
         </div>
@@ -119,7 +85,7 @@ import{S as u,R as l}from"./index-BOCmCcGk.js";import{L as i,A as c,T as g}from"
             Interaktiv 3D-søger og satellitkort for ${this.currentLocation.name}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Aktuel retning: ${a.azimuth.toFixed(0)}° ${c.getCompassDirection(a.azimuth)}</span>
+            <span>Aktuel retning: ${t.azimuth.toFixed(0)}° ${i.getCompassDirection(t.azimuth)}</span>
             <span style="color: var(--accent-sun); font-weight: 600;">Åbn FotoSol →</span>
           </div>
         </div>
@@ -158,9 +124,4 @@ import{S as u,R as l}from"./index-BOCmCcGk.js";import{L as i,A as c,T as g}from"
           Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
         </div>
       </div>
-    `}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{l.navigate("#/fotovejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{l.navigate("#/fotosol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{l.navigate("#/fotodof")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=u.getSettings();e.lastModule==="weather"?l.navigate("#/fotovejr"):e.lastModule==="sun"?l.navigate("#/fotosol"):e.lastModule==="dof"&&l.navigate("#/fotodof")});const n=this.container.querySelector("#homeSearchDropdown"),o=this.container.querySelector("#homeSearchInput"),a=this.container.querySelector("#homeSearchResults");this.container.querySelector("#btnOpenHomeLocation")?.addEventListener("click",()=>{this.searchOpen=!this.searchOpen,n.style.display=this.searchOpen?"block":"none",this.searchOpen&&o?.focus()}),this.container.querySelector("#btnHomeGps")?.addEventListener("click",async()=>{try{const e=this.container.querySelector("#btnHomeGps");e.style.opacity="0.5";const s=await i.requestGpsLocation();this.currentLocation=s,this.searchOpen=!1,this.render(),this.attachEventListeners(),e.style.opacity="1"}catch(e){alert(e.message)}});let r=null;o?.addEventListener("input",()=>{clearTimeout(r);const e=o.value.trim();if(e.length<2){a.innerHTML="";return}r=setTimeout(async()=>{const s=await i.search(e);a.innerHTML=s.map(t=>`
-          <button class="fs-btn" data-lat="${t.lat}" data-lng="${t.lng}" data-name="${t.name}" style="text-align:left; justify-content:space-between; width:100%; padding:8px 12px;">
-            <strong>${t.name}</strong>
-            <span style="font-size:11px;color:var(--text-muted);">${t.sub}</span>
-          </button>
-        `).join(""),a.querySelectorAll("[data-lat]").forEach(t=>{t.addEventListener("click",()=>{const d=Number(t.dataset.lat),p=Number(t.dataset.lng),h=t.dataset.name||"Valgt by";this.currentLocation=i.setLocation({lat:d,lng:p,name:h,source:"search"}),this.searchOpen=!1,this.render(),this.attachEventListeners()})})},300)}),this.container.querySelectorAll("[data-spot-lat]").forEach(e=>{e.addEventListener("click",()=>{const s=e,t=Number(s.dataset.spotLat),d=Number(s.dataset.spotLng),p=s.dataset.spotName||"Fotospot";this.currentLocation=i.setLocation({lat:t,lng:d,name:p,source:"search"}),this.searchOpen=!1,this.render(),this.attachEventListeners()})})}getModuleName(n){return n==="weather"?"FotoVejr":n==="sun"?"FotoSol":n==="dof"?"FotoDOF":n}}export{y as default};
+    `;const d=this.container.querySelector("#homeLocationMount");d&&(this.locationBar=new g({container:d,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{o.navigate("#/fotovejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{o.navigate("#/fotosol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{o.navigate("#/fotodof")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=p.getSettings();e.lastModule==="weather"?o.navigate("#/fotovejr"):e.lastModule==="sun"?o.navigate("#/fotosol"):e.lastModule==="dof"&&o.navigate("#/fotodof")})}getModuleName(e){return e==="weather"?"FotoVejr":e==="sun"?"FotoSol":e==="dof"?"FotoDOF":e}}export{h as default};

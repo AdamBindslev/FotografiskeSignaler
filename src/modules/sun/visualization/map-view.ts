@@ -36,10 +36,10 @@ export class MapView {
 
     this.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // Mørkt CartoDB / OSM flisetema
-    this.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Gratis OpenStreetMap fliselag uden krav om API-nøgle
+    this.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(this.map);
 
     // Fotograf markør

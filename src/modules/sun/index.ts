@@ -8,12 +8,14 @@ import { LocationService, GeoLocation } from '../../shared/services/LocationServ
 import { TimeService } from '../../shared/services/TimeService.ts';
 import { ShadowSimulator } from './visualization/shadow-sim.ts';
 import { MapView } from './visualization/map-view.ts';
+import { LocationBar } from '../../shared/components/LocationBar.ts';
 import './sun.css';
 
 export default class SunModule implements ModuleInstance {
   private container!: HTMLElement;
   private simulator: ShadowSimulator | null = null;
   private mapView: MapView | null = null;
+  private locationBar: LocationBar | null = null;
 
   private activeViewMode: '3d' | 'compass' | 'map' = '3d';
   private subjectType: 'person' | 'tree' | 'building' | 'custom' = 'person';
@@ -91,10 +93,20 @@ export default class SunModule implements ModuleInstance {
     this.pausePlayback();
     if (this.unsubLocation) {
       this.unsubLocation();
+      this.unsubLocation = null;
+    }
+    if (this.locationBar) {
+      this.locationBar.destroy();
+      this.locationBar = null;
     }
   }
 
   private render(): void {
+    if (this.locationBar) {
+      this.locationBar.destroy();
+      this.locationBar = null;
+    }
+
     const minutesOfDay = this.currentDate.getHours() * 60 + this.currentDate.getMinutes();
 
     this.container.innerHTML = `
@@ -116,24 +128,8 @@ export default class SunModule implements ModuleInstance {
           <span class="fs-badge badge-sun" id="sunPhaseHeaderBadge">Gylden time</span>
         </div>
 
-        <!-- LOKATION -->
-        <div class="location-bar">
-          <div class="loc-info-group" id="btnOpenLocationModal" title="Vælg lokation">
-            <span class="loc-main-name" id="sunLocName">${this.currentLocation.name}</span>
-            <span class="loc-sub-coords" id="sunLocCoords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø</span>
-          </div>
-          <div class="loc-actions">
-            <button class="fs-btn-icon" id="btnSunGps" title="Brug aktuel GPS-position" aria-label="Brug GPS">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="8"></circle>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
+        <!-- FÆLLES LOKATION (§4.2, §9.1) -->
+        <div id="sunLocationMount"></div>
 
         <!-- HERO TELEMETRI -->
         <div class="sun-hero-card">
@@ -243,6 +239,22 @@ export default class SunModule implements ModuleInstance {
         </div>
       </div>
     `;
+
+    // Monter fælles LocationBar
+    const mountEl = this.container.querySelector('#sunLocationMount') as HTMLElement | null;
+    if (mountEl) {
+      this.locationBar = new LocationBar({
+        container: mountEl,
+        accentClass: 'fs-btn-accent-sun',
+        onLocationChange: (loc) => {
+          this.currentLocation = loc;
+          this.updateCalculations();
+          if (this.mapView) {
+            this.mapView.setCenter(loc.lat, loc.lng);
+          }
+        }
+      });
+    }
   }
 
   private initSimulator(): void {
@@ -345,21 +357,6 @@ export default class SunModule implements ModuleInstance {
       this.currentDate = new Date();
       timeSlider.value = String(this.currentDate.getHours() * 60 + this.currentDate.getMinutes());
       this.updateCalculations();
-    });
-
-    // GPS knap
-    this.container.querySelector('#btnSunGps')?.addEventListener('click', async () => {
-      try {
-        const btn = this.container.querySelector('#btnSunGps') as HTMLElement;
-        btn.style.opacity = '0.5';
-        const loc = await LocationService.requestGpsLocation();
-        this.currentLocation = loc;
-        this.updateLocationDisplay();
-        this.updateCalculations();
-        btn.style.opacity = '1';
-      } catch (err) {
-        alert((err as Error).message);
-      }
     });
 
     // Genstandsvælgere

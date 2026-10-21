@@ -176,10 +176,32 @@
 
 .camera-preset-bar {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   margin-top: var(--space-2);
-  padding-bottom: 2px;
+  padding: 4px 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.camera-preset-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.camera-preset-bar .quick-val-btn {
+  flex-shrink: 0;
+  background: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+}
+
+.camera-preset-bar .quick-val-btn:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent-sun);
+  color: #ffffff;
+}
+
+.camera-preset-bar .quick-val-btn:active {
+  transform: scale(0.96);
 }
 
 /* TIDSLINJE & SCRUBBER KONTROL */

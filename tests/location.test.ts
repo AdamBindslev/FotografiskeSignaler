@@ -47,4 +47,34 @@ describe('LocationService - Gemte fotospots', () => {
     expect(remaining.length).toBe(1);
     expect(remaining[0].id).toBe(spot2.id);
   });
+
+  it('Parser DAWA adressedata korrekt (y=lat, x=lng)', async () => {
+    const mockDawa = [
+      {
+        tekst: 'Rådhuspladsen 1, 1550 København V',
+        adresse: {
+          vejnavn: 'Rådhuspladsen',
+          husnr: '1',
+          postnr: '1550',
+          postnrnavn: 'København V',
+          x: 12.5686,
+          y: 55.6761
+        }
+      }
+    ];
+
+    (globalThis as any).fetch = async (url: string) => {
+      if (url.includes('dataforsyningen.dk')) {
+        return { ok: true, json: async () => mockDawa };
+      }
+      return { ok: true, json: async () => ({ results: [] }) };
+    };
+
+    const results = await LocationService.search('Rådhuspladsen 1');
+    expect(results.length).toBe(1);
+    expect(results[0].name).toBe('Rådhuspladsen 1');
+    expect(results[0].sub).toContain('København V');
+    expect(results[0].lat).toBe(55.6761);
+    expect(results[0].lng).toBe(12.5686);
+  });
 });

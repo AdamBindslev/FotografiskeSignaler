@@ -8,8 +8,7 @@ import { StorageService } from '../shared/services/StorageService.ts';
 
 export class AppShell {
   private static rootEl: HTMLElement;
-  private static headerTitleEl: HTMLElement;
-  private static headerSubtitleEl: HTMLElement;
+  private static headerBadgeEl: HTMLElement;
   private static btnNightModeEl: HTMLElement;
   private static mainContentEl: HTMLElement;
   private static bottomNavEl: HTMLElement;
@@ -32,10 +31,7 @@ export class AppShell {
       <header class="app-header">
         <div class="header-brand" id="btnHeaderBrand" role="button" aria-label="Gå til Hjem">
           <img src="fotografiske-signaler-wordmark.png" alt="Fotografiske Signaler" class="header-logo" onerror="this.style.display='none'">
-          <div class="header-title-wrap">
-            <span class="header-title">Fotografiske Signaler</span>
-            <span class="header-subtitle" id="headerSubtitle">Værktøjskasse</span>
-          </div>
+          <span class="header-badge" id="headerModuleBadge" style="display: none;"></span>
         </div>
         <div class="header-actions">
           <button class="fs-btn-icon" id="btnNightMode" title="Astro Rød nattilstand" aria-label="Skift til rød nattilstand">
@@ -51,8 +47,7 @@ export class AppShell {
       <nav class="app-bottom-nav" aria-label="Hovednavigation" id="bottomNav"></nav>
     `;
 
-    this.headerTitleEl = this.rootEl.querySelector('.header-title')!;
-    this.headerSubtitleEl = this.rootEl.querySelector('#headerSubtitle')!;
+    this.headerBadgeEl = this.rootEl.querySelector('#headerModuleBadge')!;
     this.btnNightModeEl = this.rootEl.querySelector('#btnNightMode')!;
     this.mainContentEl = this.rootEl.querySelector('#main-content')!;
     this.bottomNavEl = this.rootEl.querySelector('#bottomNav')!;
@@ -96,8 +91,13 @@ export class AppShell {
 
     const newModuleId = activeModule.id;
 
-    // Opdater topbjælke titel
-    this.headerSubtitleEl.textContent = activeModule.name;
+    // Opdater topbjælke modul-badge (skjult på Hjem)
+    if (newModuleId === 'home') {
+      this.headerBadgeEl.style.display = 'none';
+    } else {
+      this.headerBadgeEl.textContent = activeModule.name;
+      this.headerBadgeEl.style.display = 'inline-block';
+    }
 
     // Opdater aktiv fane i bundnavigation
     const allNavItems = this.bottomNavEl.querySelectorAll('.nav-item');

@@ -192,22 +192,61 @@ export class LocationService {
 
   public static async search(query: string): Promise<Array<{ name: string; sub: string; lat: number; lng: number }>> {
     if (!query || query.trim().length < 2) return [];
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=8&language=da&format=json`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      if (!data.results) return [];
-      return data.results.map((item: any) => ({
-        name: item.name,
-        sub: [item.admin1, item.country].filter(Boolean).join(', '),
-        lat: item.latitude,
-        lng: item.longitude
-      }));
-    } catch (e) {
-      console.warn('Stedsøgning fejlede:', e);
-      return [];
+    const trimmed = query.trim();
+
+    // Kør DAWA (dansk adresse-API med gade + husnummer) og Open-Meteo (byer, naturområder, udland) sideløbende
+    const dawaUrl = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(trimmed)}`;
+    const meteoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=6&language=da&format=json`;
+
+    const results: Array<{ name: string; sub: string; lat: number; lng: number }> = [];
+    const seen = new Set<string>();
+
+    const [dawaSettled, meteoSettled] = await Promise.allSettled([
+      fetch(dawaUrl).then(async (r) => (r.ok ? r.json() : [])),
+      fetch(meteoUrl).then(async (r) => (r.ok ? r.json() : {}))
+    ]);
+
+    // 1. DAWA danske adresser
+    if (dawaSettled.status === 'fulfilled' && Array.isArray(dawaSettled.value)) {
+      for (const item of dawaSettled.value) {
+        if (item?.adresse && typeof item.adresse.y === 'number' && typeof item.adresse.x === 'number') {
+          const addr = item.adresse;
+          const street = [addr.vejnavn, addr.husnr, addr.etage, addr.dør].filter(Boolean).join(' ');
+          const city = [addr.postnr, addr.postnrnavn].filter(Boolean).join(' ');
+          const name = street || item.tekst;
+          const sub = city ? `${city}, Danmark` : 'Danmark';
+          const key = `${addr.y.toFixed(4)},${addr.x.toFixed(4)}`;
+
+          if (!seen.has(key)) {
+            seen.add(key);
+            results.push({
+              name,
+              sub,
+              lat: addr.y, // DAWA: y = breddegrad (lat)
+              lng: addr.x  // DAWA: x = længdegrad (lng)
+            });
+          }
+        }
+      }
     }
+
+    // 2. Open-Meteo steder, byer og naturområder
+    if (meteoSettled.status === 'fulfilled' && meteoSettled.value && Array.isArray(meteoSettled.value.results)) {
+      for (const item of meteoSettled.value.results) {
+        const key = `${item.latitude.toFixed(4)},${item.longitude.toFixed(4)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({
+            name: item.name,
+            sub: [item.admin1, item.country].filter(Boolean).join(', '),
+            lat: item.latitude,
+            lng: item.longitude
+          });
+        }
+      }
+    }
+
+    return results.slice(0, 10);
   }
 
   public static async reverseGeocode(lat: number, lng: number): Promise<{ name: string; sub?: string } | null> {
