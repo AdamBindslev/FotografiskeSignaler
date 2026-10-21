@@ -292,7 +292,17 @@ export default class SunModule implements ModuleInstance {
 
         // Lazy-load Leaflet kort
         if (!this.mapView) {
-          this.mapView = new MapView(mapContainer);
+          this.mapView = new MapView(mapContainer, {
+            onLocationChange: (newLat, newLng) => {
+              this.currentLocation = LocationService.setLocation({
+                lat: newLat,
+                lng: newLng,
+                name: 'Valgt position på kort'
+              });
+              this.updateLocationDisplay();
+              this.updateCalculations();
+            }
+          });
           await this.mapView.init(this.currentLocation.lat, this.currentLocation.lng);
         }
         this.mapView.invalidateSize();
@@ -472,7 +482,7 @@ export default class SunModule implements ModuleInstance {
 
     // Opdater Leaflet kort
     if (this.activeViewMode === 'map' && this.mapView) {
-      this.mapView.update(lat, lng, sunPos.azimuth, shadowCalc.shadowAzimuth, shadowCalc.shadowLength);
+      this.mapView.update(lat, lng, sunPos.altitude, sunPos.azimuth, shadowCalc.shadowAzimuth, shadowCalc.shadowLength);
     }
 
     // Render hurtige solspring pills

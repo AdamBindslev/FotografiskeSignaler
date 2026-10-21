@@ -334,3 +334,52 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+/* LEAFLET KORTMARKØRER OG ETIKETTER */
+.fs-leaflet-icon,
+.fs-leaflet-sun-marker,
+.fs-leaflet-shadow-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.fs-map-sun-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1.5px solid #f59e0b;
+  padding: 3px 9px;
+  border-radius: 20px;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.55);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.fs-map-sun-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fbbf24;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.fs-map-shadow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(2, 6, 23, 0.94);
+  border: 1.5px solid #38bdf8;
+  padding: 2px 7px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.fs-map-shadow-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #38bdf8;
+  font-family: var(--font-mono);
+}

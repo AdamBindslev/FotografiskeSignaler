@@ -70,7 +70,7 @@ export class ShadowSimulator {
       const dx = x - this.camera.lastMouseX;
       const dy = y - this.camera.lastMouseY;
 
-      this.camera.azimuth = (this.camera.azimuth - dx * 0.5) % 360;
+      this.camera.azimuth = ((this.camera.azimuth - dx * 0.5) % 360 + 360) % 360;
       this.camera.pitch = Math.max(12, Math.min(85, this.camera.pitch + dy * 0.4));
 
       this.camera.lastMouseX = x;
@@ -169,7 +169,8 @@ export class ShadowSimulator {
       this.camera.azimuth = this.simData.shadowAzimuth;
       this.camera.pitch = 28;
     } else {
-      this.camera.azimuth = 220;
+      // 3/4 vinkel (45 grader offset fra solen) så både lysindfald og skygge ses diagonalt
+      this.camera.azimuth = (this.simData.sunAzimuth + 45) % 360;
       this.camera.pitch = 35;
     }
     this.camera.zoom = 1.0;
@@ -223,7 +224,7 @@ export class ShadowSimulator {
       const rz = wz;
 
       const screenX = cx + rx * scale;
-      const groundY = cy + ry * scale * sin(camPitchRad);
+      const groundY = cy - ry * scale * sin(camPitchRad);
       const screenY = groundY - rz * scale * cos(camPitchRad);
 
       return { x: screenX, y: screenY, depth: ry };
@@ -231,7 +232,7 @@ export class ShadowSimulator {
 
     this.drawIlluminatedGroundPlane(project, scale, alt);
     this.drawGroundGrid(project);
-    this.drawGroundCompass(project);
+    this.drawGroundCompass(project, w, h, scale, camPitchRad);
 
     if (this.simData.hasDirectShadow) {
       this.drawCastShadow(project, shadowAz, this.simData.shadowLength);
@@ -341,36 +342,72 @@ export class ShadowSimulator {
     this.ctx.restore();
   }
 
-  private drawGroundCompass(project: any): void {
-    const dist = 14;
+  private drawGroundCompass(project: any, w: number, h: number, scale: number, camPitchRad: number): void {
+    // Dynamisk kompasafstand så akser og etiketter altid er synlige inden for søgeren
+    const effectivePitchFactor = Math.max(0.3, sin(camPitchRad));
+    const maxVisibleMeters = (Math.min(w, h) * 0.42) / (scale * effectivePitchFactor);
+    const dist = Math.max(3.5, Math.min(22, maxVisibleMeters * 0.85));
+
     this.ctx.save();
-    this.ctx.font = 'bold 12px ui-monospace, SFMono-Regular, monospace';
+    this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
 
+    const pCenter = project(0, 0, 0);
     const pN = project(0, dist, 0);
     const pS = project(0, -dist, 0);
     const pE = project(dist, 0, 0);
     const pW = project(-dist, 0, 0);
 
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-    this.ctx.lineWidth = 1;
-    this.ctx.setLineDash([3, 4]);
+    this.ctx.lineWidth = 1.5;
+    this.ctx.setLineDash([4, 4]);
 
+    // Sydakse
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
     this.ctx.beginPath();
-    this.ctx.moveTo(pS.x, pS.y);
+    this.ctx.moveTo(pCenter.x, pCenter.y);
+    this.ctx.lineTo(pS.x, pS.y);
+    this.ctx.stroke();
+
+    // Nordakse (fremhæves i rødligt skær)
+    this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.45)';
+    this.ctx.beginPath();
+    this.ctx.moveTo(pCenter.x, pCenter.y);
     this.ctx.lineTo(pN.x, pN.y);
+    this.ctx.stroke();
+
+    // Øst-Vest akse
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    this.ctx.beginPath();
     this.ctx.moveTo(pW.x, pW.y);
     this.ctx.lineTo(pE.x, pE.y);
     this.ctx.stroke();
     this.ctx.setLineDash([]);
 
-    this.ctx.fillStyle = '#ef4444';
-    this.ctx.fillText('N', pN.x, pN.y);
-    this.ctx.fillStyle = '#94a3b8';
-    this.ctx.fillText('Ø', pE.x, pE.y);
-    this.ctx.fillText('S', pS.x, pS.y);
-    this.ctx.fillText('V', pW.x, pW.y);
+    // Tydelige badges ved kardinalpunkterne
+    const drawCardinalBadge = (pt: { x: number; y: number }, label: string, isNorth: boolean) => {
+      const bw = isNorth ? 28 : 22;
+      const bh = 18;
+      const bx = pt.x - bw * 0.5;
+      const by = pt.y - bh * 0.5;
+
+      this.ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      this.ctx.strokeStyle = isNorth ? '#ef4444' : 'rgba(148, 163, 184, 0.45)';
+      this.ctx.lineWidth = isNorth ? 1.5 : 1;
+      this.ctx.beginPath();
+      this.ctx.roundRect(bx, by, bw, bh, 4);
+      this.ctx.fill();
+      this.ctx.stroke();
+
+      this.ctx.fillStyle = isNorth ? '#ef4444' : '#cbd5e1';
+      this.ctx.fillText(label, pt.x, pt.y);
+    };
+
+    drawCardinalBadge(pN, '▲ N', true);
+    drawCardinalBadge(pE, 'Ø', false);
+    drawCardinalBadge(pS, 'S', false);
+    drawCardinalBadge(pW, 'V', false);
+
     this.ctx.restore();
   }
 
@@ -569,15 +606,61 @@ export class ShadowSimulator {
       return;
     }
 
-    const relAzRad = (azDeg - this.camera.azimuth) * rad;
-    const sunDist = Math.min(w, h) * 0.42;
+    const relAz = ((azDeg - this.camera.azimuth + 540) % 360) - 180;
+    const isFacingSun = Math.abs(relAz) < 95;
+    const pTop = project(0, 0, this.subjectHeight);
 
-    let sunScreenX = cx + sin(relAzRad) * sunDist * 1.1;
-    const altFactor = Math.sin(Math.max(0, altDeg) * rad);
-    let sunScreenY = cy - 25 - altFactor * (h * 0.45);
+    if (!isFacingSun) {
+      // Solen befinder sig bag kameraets synsvinkel - vis diskret statusindikator
+      this.ctx.save();
+      const badgeText = `☀ Sol: ${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)} (+${altDeg.toFixed(1)}°) [Bag synsvinkel]`;
+      this.ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+      this.ctx.lineWidth = 1;
+      const bW = 230;
+      const bH = 22;
+      this.ctx.beginPath();
+      this.ctx.roundRect(14, 14, bW, bH, 4);
+      this.ctx.fill();
+      this.ctx.stroke();
 
-    sunScreenX = Math.max(30, Math.min(w - 30, sunScreenX));
-    sunScreenY = Math.max(28, Math.min(h * 0.65, sunScreenY));
+      this.ctx.fillStyle = '#fbbf24';
+      this.ctx.font = 'bold 10px ui-monospace, SFMono-Regular, monospace';
+      this.ctx.textAlign = 'left';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(badgeText, 22, 25);
+      this.ctx.restore();
+      return;
+    }
+
+    // Solen er i synsfeltet:
+    // Placer solen kollinært med skyggen for fysisk perfekt sammenhæng!
+    const radShadowAz = this.simData.shadowAzimuth * rad;
+    const dirX = sin(radShadowAz);
+    const dirY = cos(radShadowAz);
+    const shadowLen = Math.max(0.5, this.simData.shadowLength);
+    const pTip = project(dirX * shadowLen, dirY * shadowLen, 0);
+
+    // Vektor i 2D fra skyggespids gennem motivets hoved mod solen
+    const vx = pTop.x - pTip.x;
+    const vy = pTop.y - pTip.y;
+    const vLen = Math.hypot(vx, vy);
+
+    let sunScreenX = cx;
+    let sunScreenY = cy - 60;
+
+    if (vLen > 0.001) {
+      // Ønsket visuel afstand fra motivets hoved til solen på himlen
+      const desiredDist = Math.max(70, Math.min(180, Math.min(w, h) * 0.44));
+      const k = desiredDist / vLen;
+
+      sunScreenX = pTop.x + vx * k;
+      sunScreenY = pTop.y + vy * k;
+
+      // Hold solen inden for synsfeltets rammer
+      sunScreenX = Math.max(36, Math.min(w - 75, sunScreenX));
+      sunScreenY = Math.max(28, Math.min(h * 0.65, sunScreenY));
+    }
 
     this.ctx.save();
 
@@ -605,8 +688,8 @@ export class ShadowSimulator {
     this.ctx.arc(sunScreenX, sunScreenY, 11, 0, PI * 2);
     this.ctx.fill();
 
-    const pTop = project(0, 0, this.subjectHeight);
-    this.ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+    // Gylden stiplet lysstråle fra solen ned til motivet (kollinær med skyggen)
+    this.ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
     this.ctx.lineWidth = 1.5;
     this.ctx.setLineDash([4, 4]);
     this.ctx.beginPath();
@@ -615,6 +698,7 @@ export class ShadowSimulator {
     this.ctx.stroke();
     this.ctx.setLineDash([]);
 
+    // Sol-mærkat
     this.ctx.fillStyle = '#fbbf24';
     this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = sunScreenX > cx ? 'left' : 'right';
@@ -648,6 +732,7 @@ export class ShadowSimulator {
     this.ctx.strokeStyle = reticleColor;
     this.ctx.lineWidth = 1.5;
 
+    // Hjørnemærker (EVF søgeramme)
     this.ctx.beginPath();
     this.ctx.moveTo(pad, pad + rLen);
     this.ctx.lineTo(pad, pad);
@@ -663,10 +748,101 @@ export class ShadowSimulator {
     this.ctx.lineTo(w - pad, h - pad - rLen);
     this.ctx.stroke();
 
+    // Roterende 3D kompasrose i øverste højre hjørne
+    this.drawMiniCompassRose(w, h);
+
+    // Instruktion i bunden
     this.ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
     this.ctx.font = '9px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('TRÆK FOR AT ROTERE 3D-SØGER', w * 0.5, h - 16);
+    this.ctx.restore();
+  }
+
+  private drawMiniCompassRose(w: number, h: number): void {
+    const radius = 24;
+    const cx = w - 46;
+    const cy = 46;
+
+    this.ctx.save();
+
+    // Baggrunds-skive for mini-kompas
+    this.ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy, radius, 0, PI * 2);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    // Kameraet ser mod this.camera.azimuth.
+    // Ligeud i søgeren er "OP" (-90 grader).
+    // Nord ligger ved vinkel (-camera.azimuth - 90) grader.
+    const camAz = this.camera.azimuth;
+    const northAngle = (-camAz - 90) * rad;
+
+    const nLen = radius - 6;
+    const tipNx = cx + cos(northAngle) * nLen;
+    const tipNy = cy + sin(northAngle) * nLen;
+    const tipSx = cx - cos(northAngle) * (nLen * 0.65);
+    const tipSy = cy - sin(northAngle) * (nLen * 0.65);
+
+    // Syd-nål (grå)
+    this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx, cy);
+    this.ctx.lineTo(tipSx, tipSy);
+    this.ctx.stroke();
+
+    // Nord-nål (rød)
+    this.ctx.strokeStyle = '#ef4444';
+    this.ctx.lineWidth = 2.5;
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx, cy);
+    this.ctx.lineTo(tipNx, tipNy);
+    this.ctx.stroke();
+
+    // Tydeligt 'N' mærke
+    const labelNx = cx + cos(northAngle) * (radius - 5);
+    const labelNy = cy + sin(northAngle) * (radius - 5);
+    this.ctx.font = 'bold 9px ui-monospace, SFMono-Regular, monospace';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillStyle = '#ef4444';
+    this.ctx.fillText('N', labelNx, labelNy);
+
+    // Sol-indikator på kanten af mini-kompasset
+    const sunAngle = (this.simData.sunAzimuth - camAz - 90) * rad;
+    const sunDotX = cx + cos(sunAngle) * (radius - 2);
+    const sunDotY = cy + sin(sunAngle) * (radius - 2);
+    this.ctx.fillStyle = '#fbbf24';
+    this.ctx.beginPath();
+    this.ctx.arc(sunDotX, sunDotY, 3.5, 0, PI * 2);
+    this.ctx.fill();
+
+    // Skygge-indikator på kanten af mini-kompasset
+    const shadowAngle = (this.simData.shadowAzimuth - camAz - 90) * rad;
+    const shadowDotX = cx + cos(shadowAngle) * (radius - 2);
+    const shadowDotY = cy + sin(shadowAngle) * (radius - 2);
+    this.ctx.fillStyle = '#38bdf8';
+    this.ctx.beginPath();
+    this.ctx.arc(shadowDotX, shadowDotY, 2.5, 0, PI * 2);
+    this.ctx.fill();
+
+    // Lille centrum-prik
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy, 2, 0, PI * 2);
+    this.ctx.fill();
+
+    // Retningstekst under mini-kompas
+    const camDirText = `${Math.round(camAz)}° ${AstroCore.getCompassDirection(camAz)}`;
+    this.ctx.font = '9px ui-monospace, SFMono-Regular, monospace';
+    this.ctx.fillStyle = '#94a3b8';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(camDirText, cx, cy + radius + 10);
+
     this.ctx.restore();
   }
 
