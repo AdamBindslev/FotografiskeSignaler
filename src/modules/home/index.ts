@@ -9,10 +9,20 @@ import { TimeService } from '../../shared/services/TimeService.ts';
 import { StorageService } from '../../shared/services/StorageService.ts';
 import { AstroCore } from '../../shared/astronomy/AstroCore.ts';
 
+const POPULAR_SPOTS = [
+  { name: 'Møns Klint', sub: 'Kridtskrænter & Mælkevejen', lat: 54.9667, lng: 12.5500 },
+  { name: 'Skagen Grenen', sub: 'Solnedgang & to have', lat: 57.7441, lng: 10.6478 },
+  { name: 'Rubjerg Knude', sub: 'Sandklit & Fyr', lat: 57.4497, lng: 9.7739 },
+  { name: 'Hammershus, Bornholm', sub: 'Klippekyst & Borgruin', lat: 55.2728, lng: 14.7544 },
+  { name: 'Vadehavet, Rømø', sub: 'Sort Sol & uendelig horisont', lat: 55.1389, lng: 8.5417 },
+  { name: 'København Havn', sub: 'Nyhavn & Byarkitektur', lat: 55.6795, lng: 12.5910 }
+];
+
 export default class HomeModule implements ModuleInstance {
   private container!: HTMLElement;
   private currentLocation: GeoLocation = LocationService.getLocation();
   private unsubLocation: (() => void) | null = null;
+  private searchOpen: boolean = false;
 
   public mount(container: HTMLElement): void {
     this.container = container;
@@ -61,13 +71,52 @@ export default class HomeModule implements ModuleInstance {
             Professionel fotografisk værktøjskasse. Vejranalyse, sol- og lysretning samt optiske DOF-beregninger samlet i én mobiloptimeret PWA.
           </p>
 
-          <!-- Aktuel status bar -->
-          <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-            <span>📍 ${this.currentLocation.name}</span>
+          <!-- Aktuel status bar med solinfo -->
+          <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 12px; flex-wrap: wrap;">
+            <span style="color: ${lightPhase.color}; font-weight: 700;">● ${lightPhase.name}</span>
             <span>•</span>
-            <span style="color: ${lightPhase.color}; font-weight: 700;">${lightPhase.name}</span>
+            <span>Sol ${sunPos.altitude >= 0 ? '+' : ''}${sunPos.altitude.toFixed(0)}° (${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)})</span>
             <span>•</span>
-            <span>Sol ${sunPos.altitude >= 0 ? '+' : ''}${sunPos.altitude.toFixed(0)}°</span>
+            <span>Solnedgang: ${TimeService.formatTime(sunTimes.sunset)}</span>
+          </div>
+        </div>
+
+        <!-- LOKATIONSVÆLGER PÅ STARTSKÆRMEN (§4.2, §9.1) -->
+        <div class="location-bar">
+          <div class="loc-info-group" id="btnOpenHomeLocation" title="Vælg eller søg lokation" style="cursor: pointer;">
+            <span class="loc-main-name" id="homeLocName">📍 ${this.currentLocation.name}</span>
+            <span class="loc-sub-coords" id="homeLocCoords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø • Tryk for at skifte</span>
+          </div>
+          <div class="loc-actions">
+            <button class="fs-btn-icon" id="btnHomeGps" title="Brug aktuel GPS-position" aria-label="Brug GPS">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="8"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- SØGEPANEL MED FORSLAG OG POPULÆRE FOTOSPOTS -->
+        <div id="homeSearchDropdown" class="fs-card" style="display: ${this.searchOpen ? 'block' : 'none'}; margin-bottom: 0;">
+          <input type="text" id="homeSearchInput" placeholder="Søg by, postnr eller naturområde..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
+          <div id="homeSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
+          
+          <!-- Populære fotospots genveje -->
+          <div style="margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Populære Fotospots i Danmark:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+              ${POPULAR_SPOTS.map(
+                (spot) => `
+                <button class="quick-val-btn" data-spot-lat="${spot.lat}" data-spot-lng="${spot.lng}" data-spot-name="${spot.name}" style="padding: 5px 9px; font-size: 11px;">
+                  📍 ${spot.name}
+                </button>
+              `
+              ).join('')}
+            </div>
           </div>
         </div>
 
@@ -101,7 +150,7 @@ export default class HomeModule implements ModuleInstance {
             <span class="fs-badge badge-weather">Vejr</span>
           </div>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
-            7-døgns fotografisk vejranalyse. Beregner morgentåge, gylden time-kvalitet, skydække i 3 lag og stjerneklart astro-vindue.
+            7-døgns fotografisk vejranalyse for ${this.currentLocation.name}. Beregner morgentåge, gylden time-kvalitet, skydække i 3 lag og stjerneklart astro-vindue.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Solopgang: ${TimeService.formatTime(sunTimes.sunrise)} • Solnedgang: ${TimeService.formatTime(sunTimes.sunset)}</span>
@@ -132,7 +181,7 @@ export default class HomeModule implements ModuleInstance {
             <span class="fs-badge badge-sun">3D & Kort</span>
           </div>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
-            Interaktiv 3D-søger og satellitkort. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
+            Interaktiv 3D-søger og satellitkort for ${this.currentLocation.name}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Aktuel retning: ${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}</span>
@@ -178,6 +227,7 @@ export default class HomeModule implements ModuleInstance {
   }
 
   private attachEventListeners(): void {
+    // Navigation til moduler
     this.container.querySelector('#cardGoWeather')?.addEventListener('click', () => {
       Router.navigate('#/fotovejr');
     });
@@ -195,6 +245,85 @@ export default class HomeModule implements ModuleInstance {
       if (settings.lastModule === 'weather') Router.navigate('#/fotovejr');
       else if (settings.lastModule === 'sun') Router.navigate('#/fotosol');
       else if (settings.lastModule === 'dof') Router.navigate('#/fotodof');
+    });
+
+    // Lokationshåndtering på Hjemmeskærmen
+    const searchDropdown = this.container.querySelector('#homeSearchDropdown') as HTMLElement;
+    const searchInput = this.container.querySelector('#homeSearchInput') as HTMLInputElement;
+    const searchResults = this.container.querySelector('#homeSearchResults') as HTMLElement;
+
+    this.container.querySelector('#btnOpenHomeLocation')?.addEventListener('click', () => {
+      this.searchOpen = !this.searchOpen;
+      searchDropdown.style.display = this.searchOpen ? 'block' : 'none';
+      if (this.searchOpen) {
+        searchInput?.focus();
+      }
+    });
+
+    // GPS-knap på startskærmen
+    this.container.querySelector('#btnHomeGps')?.addEventListener('click', async () => {
+      try {
+        const btn = this.container.querySelector('#btnHomeGps') as HTMLElement;
+        btn.style.opacity = '0.5';
+        const loc = await LocationService.requestGpsLocation();
+        this.currentLocation = loc;
+        this.searchOpen = false;
+        this.render();
+        this.attachEventListeners();
+        btn.style.opacity = '1';
+      } catch (err) {
+        alert((err as Error).message);
+      }
+    });
+
+    // Søgning efter byer/steder med debounce
+    let searchTimer: any = null;
+    searchInput?.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const val = searchInput.value.trim();
+      if (val.length < 2) {
+        searchResults.innerHTML = '';
+        return;
+      }
+      searchTimer = setTimeout(async () => {
+        const results = await LocationService.search(val);
+        searchResults.innerHTML = results
+          .map(
+            (r) => `
+          <button class="fs-btn" data-lat="${r.lat}" data-lng="${r.lng}" data-name="${r.name}" style="text-align:left; justify-content:space-between; width:100%; padding:8px 12px;">
+            <strong>${r.name}</strong>
+            <span style="font-size:11px;color:var(--text-muted);">${r.sub}</span>
+          </button>
+        `
+          )
+          .join('');
+
+        searchResults.querySelectorAll('[data-lat]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const lat = Number((btn as HTMLElement).dataset.lat);
+            const lng = Number((btn as HTMLElement).dataset.lng);
+            const name = (btn as HTMLElement).dataset.name || 'Valgt by';
+            this.currentLocation = LocationService.setLocation({ lat, lng, name, source: 'search' });
+            this.searchOpen = false;
+            this.render();
+            this.attachEventListeners();
+          });
+        });
+      }, 300);
+    });
+
+    // Populære fotospots klik
+    this.container.querySelectorAll('[data-spot-lat]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn as HTMLElement;
+        const lat = Number(target.dataset.spotLat);
+        const lng = Number(target.dataset.spotLng);
+        const name = target.dataset.spotName || 'Fotospot';
+        this.currentLocation = LocationService.setLocation({ lat, lng, name, source: 'search' });
+        this.searchOpen = false;
+        this.render();
+        this.attachEventListeners();
+      });
     });
   }
 
