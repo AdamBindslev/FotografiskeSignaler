@@ -1,0 +1,164 @@
+import{A as v,L as D,T as w}from"./AstroCore-CoxmUvae.js";import{_ as R}from"./index-C8QzWCLF.js";const S=Math.PI,y=Math.sin,f=Math.cos,j=Math.tan,g=S/180;class I{canvas;ctx;currentMode="3d";subjectType="person";subjectHeight=1.75;camera={azimuth:220,pitch:35,zoom:1,isDragging:!1,lastMouseX:0,lastMouseY:0};simData={sunAzimuth:180,sunAltitude:30,shadowAzimuth:0,shadowLength:3.12,shadowRatio:1.73,hasDirectShadow:!0,diffusionFactor:1,sunTimes:null};animFrameId=null;isPaused=!1;constructor(s,e){this.canvas=s,this.ctx=s.getContext("2d"),e?.mode&&(this.currentMode=e.mode),e?.subjectType&&(this.subjectType=e.subjectType),e?.subjectHeight&&(this.subjectHeight=e.subjectHeight),this.setupInteraction()}setupInteraction(){const s=(t,a)=>{this.currentMode==="3d"&&(this.camera.isDragging=!0,this.camera.lastMouseX=t,this.camera.lastMouseY=a)},e=(t,a)=>{if(!this.camera.isDragging||this.currentMode!=="3d")return;const h=t-this.camera.lastMouseX,n=a-this.camera.lastMouseY;this.camera.azimuth=(this.camera.azimuth-h*.5)%360,this.camera.pitch=Math.max(12,Math.min(85,this.camera.pitch+n*.4)),this.camera.lastMouseX=t,this.camera.lastMouseY=a,this.render()},i=()=>{this.camera.isDragging=!1};this.canvas.addEventListener("mousedown",t=>s(t.clientX,t.clientY)),window.addEventListener("mousemove",t=>e(t.clientX,t.clientY)),window.addEventListener("mouseup",i),this.canvas.addEventListener("touchstart",t=>{t.touches.length===1&&s(t.touches[0].clientX,t.touches[0].clientY)},{passive:!0}),window.addEventListener("touchmove",t=>{this.camera.isDragging&&t.touches.length===1&&e(t.touches[0].clientX,t.touches[0].clientY)},{passive:!0}),window.addEventListener("touchend",i)}pause(){this.isPaused=!0,this.animFrameId&&(cancelAnimationFrame(this.animFrameId),this.animFrameId=null)}resume(){this.isPaused=!1,this.render()}update(s,e,i,t){if(typeof i=="number"&&i>0&&(this.subjectHeight=i),t?.subjectType&&(this.subjectType=t.subjectType),typeof t?.diffusionFactor=="number"&&(this.simData.diffusionFactor=t.diffusionFactor),t?.sunTimes&&(this.simData.sunTimes=t.sunTimes),this.simData.sunAzimuth=e,this.simData.sunAltitude=s,this.simData.shadowAzimuth=(e+180)%360,s>0){const a=s*g;this.simData.hasDirectShadow=!0,this.simData.shadowRatio=1/j(a),this.simData.shadowLength=this.subjectHeight*this.simData.shadowRatio}else this.simData.hasDirectShadow=!1,this.simData.shadowRatio=1/0,this.simData.shadowLength=1/0;this.isPaused||this.render()}setMode(s){this.currentMode=s,this.render()}setSubjectType(s,e){this.subjectType=s,e&&(this.subjectHeight=e),this.render()}resetCamera(s){s==="top"?this.camera.pitch=85:s==="rim"?(this.camera.azimuth=this.simData.sunAzimuth,this.camera.pitch=22):s==="shadow"?(this.camera.azimuth=this.simData.shadowAzimuth,this.camera.pitch=28):(this.camera.azimuth=220,this.camera.pitch=35),this.camera.zoom=1,this.render()}render(){if(this.isPaused)return;const s=window.devicePixelRatio||1,e=this.canvas.getBoundingClientRect(),i=e.width||this.canvas.width||360,t=e.height||this.canvas.height||360;(this.canvas.width!==Math.floor(i*s)||this.canvas.height!==Math.floor(t*s))&&(this.canvas.width=Math.floor(i*s),this.canvas.height=Math.floor(t*s)),this.ctx.save(),this.ctx.scale(s,s),this.ctx.clearRect(0,0,i,t),this.currentMode==="3d"?this.render3DView(i,t):this.currentMode==="compass"&&this.renderCompassView(i,t),this.ctx.restore()}render3DView(s,e){const i=s*.5,t=e*.58,a=this.simData.sunAltitude,h=this.simData.sunAzimuth,n=this.simData.shadowAzimuth;this.drawSkyDome(s,e,a);const r=Math.min(this.simData.shadowLength,30),c=Math.max(9,Math.min(35,s*.38/Math.max(this.subjectHeight*2.2,r*.72))),l=this.camera.azimuth*g,d=this.camera.pitch*g,o=(u,x,m)=>{const p=u*f(l)-x*y(l),b=u*y(l)+x*f(l),T=m,L=i+p*c,C=t+b*c*y(d)-T*c*f(d);return{x:L,y:C,depth:b}};this.drawIlluminatedGroundPlane(o,c,a),this.drawGroundGrid(o),this.drawGroundCompass(o),this.simData.hasDirectShadow&&this.drawCastShadow(o,n,this.simData.shadowLength),this.drawSubject3D(o,c),this.drawSunInSky(s,e,i,t,a,h,o),this.drawEvfOverlay(s,e)}drawSkyDome(s,e,i){const t=this.ctx.createLinearGradient(0,0,0,e);i>20?(t.addColorStop(0,"#0c1322"),t.addColorStop(.55,"#19243a"),t.addColorStop(.85,"#22324e"),t.addColorStop(1,"#111827")):i>6?(t.addColorStop(0,"#0d1322"),t.addColorStop(.55,"#1e283d"),t.addColorStop(.82,"#313247"),t.addColorStop(1,"#141824")):i>0?(t.addColorStop(0,"#0f1424"),t.addColorStop(.45,"#261b2e"),t.addColorStop(.72,"#5c2c1a"),t.addColorStop(.88,"#8c4815"),t.addColorStop(1,"#211822")):i>-6?(t.addColorStop(0,"#060a17"),t.addColorStop(.55,"#111833"),t.addColorStop(.85,"#1b2247"),t.addColorStop(1,"#0b0f1c")):(t.addColorStop(0,"#04060c"),t.addColorStop(.65,"#070b17"),t.addColorStop(1,"#03050a")),this.ctx.fillStyle=t,this.ctx.fillRect(0,0,s,e)}drawIlluminatedGroundPlane(s,e,i){this.ctx.save(),this.ctx.beginPath();for(let r=0;r<=64;r++){const c=r/64*S*2,l=s(y(c)*24,f(c)*24,0);r===0?this.ctx.moveTo(l.x,l.y):this.ctx.lineTo(l.x,l.y)}this.ctx.closePath();const h=s(0,0,0),n=this.ctx.createRadialGradient(h.x,h.y,5,h.x,h.y,24*e*1.1);i>6?(n.addColorStop(0,"#243048"),n.addColorStop(.6,"#182030"),n.addColorStop(1,"rgba(15, 23, 42, 0)")):i>0?(n.addColorStop(0,"#3a2920"),n.addColorStop(.55,"#241a22"),n.addColorStop(1,"rgba(17, 24, 39, 0)")):(n.addColorStop(0,"#151d2f"),n.addColorStop(.7,"#0f1522"),n.addColorStop(1,"rgba(10, 15, 25, 0)")),this.ctx.fillStyle=n,this.ctx.fill(),this.ctx.strokeStyle="rgba(255, 255, 255, 0.12)",this.ctx.lineWidth=1.5,this.ctx.stroke(),this.ctx.restore()}drawGroundGrid(s){const e=[1,2,5,10,20];this.ctx.save(),this.ctx.font="10px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign="center",this.ctx.textBaseline="middle";for(let i=0;i<e.length;i++){const t=e[i];this.ctx.beginPath();const a=48;for(let n=0;n<=a;n++){const r=n/a*S*2,c=s(y(r)*t,f(r)*t,0);n===0?this.ctx.moveTo(c.x,c.y):this.ctx.lineTo(c.x,c.y)}this.ctx.strokeStyle=t===5||t===10?"rgba(255, 255, 255, 0.18)":"rgba(255, 255, 255, 0.08)",this.ctx.lineWidth=t===5||t===10?1.5:1,this.ctx.stroke();const h=s(t,0,0);this.ctx.fillStyle="rgba(148, 163, 184, 0.65)",this.ctx.fillText(`${t}m`,h.x,h.y-5)}this.ctx.restore()}drawGroundCompass(s){this.ctx.save(),this.ctx.font="bold 12px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign="center",this.ctx.textBaseline="middle";const i=s(0,14,0),t=s(0,-14,0),a=s(14,0,0),h=s(-14,0,0);this.ctx.strokeStyle="rgba(255, 255, 255, 0.18)",this.ctx.lineWidth=1,this.ctx.setLineDash([3,4]),this.ctx.beginPath(),this.ctx.moveTo(t.x,t.y),this.ctx.lineTo(i.x,i.y),this.ctx.moveTo(h.x,h.y),this.ctx.lineTo(a.x,a.y),this.ctx.stroke(),this.ctx.setLineDash([]),this.ctx.fillStyle="#ef4444",this.ctx.fillText("N",i.x,i.y),this.ctx.fillStyle="#94a3b8",this.ctx.fillText("Ø",a.x,a.y),this.ctx.fillText("S",t.x,t.y),this.ctx.fillText("V",h.x,h.y),this.ctx.restore()}drawCastShadow(s,e,i){if(i<=.05)return;const t=e*g,a=y(t),h=f(t),n=-h,r=a,c=s(0,0,0),l=s(a*i,h*i,0);let d=Math.max(.7,this.subjectHeight*.45);this.subjectType==="tree"&&(d=Math.max(2.5,this.subjectHeight*.7)),this.subjectType==="building"&&(d=Math.max(4,this.subjectHeight*.8));const o=d*(1+Math.min(i*.06,1.4)),u=s(n*(d*.5),r*(d*.5),0),x=s(-n*(d*.5),-r*(d*.5),0),m=s(a*i+n*(o*.5),h*i+r*(o*.5),0),p=s(a*i-n*(o*.5),h*i-r*(o*.5),0);this.ctx.save();const b=this.ctx.createLinearGradient(c.x,c.y,l.x,l.y),T=this.simData.diffusionFactor||1;b.addColorStop(0,`rgba(0, 0, 0, ${.95*T})`),b.addColorStop(.7,`rgba(2, 6, 18, ${.85*T})`),b.addColorStop(1,`rgba(10, 16, 28, ${.45*T})`),this.ctx.fillStyle=b,this.ctx.beginPath(),this.ctx.moveTo(u.x,u.y),this.ctx.lineTo(m.x,m.y),this.ctx.quadraticCurveTo(l.x+a*6,l.y+h*6,p.x,p.y),this.ctx.lineTo(x.x,x.y),this.ctx.closePath(),this.ctx.fill(),this.ctx.strokeStyle="rgba(56, 189, 248, 0.45)",this.ctx.lineWidth=1.5,this.ctx.stroke(),this.ctx.strokeStyle="#38bdf8",this.ctx.setLineDash([4,4]),this.ctx.lineWidth=2,this.ctx.beginPath(),this.ctx.moveTo(c.x,c.y),this.ctx.lineTo(l.x,l.y),this.ctx.stroke(),this.ctx.setLineDash([]);const L=i<100?`${i.toFixed(1)} m`:"> 100 m",M=74,C=22,E=l.x-M*.5,k=l.y-28;this.ctx.fillStyle="rgba(15, 23, 42, 0.92)",this.ctx.strokeStyle="#38bdf8",this.ctx.lineWidth=1.5,this.ctx.beginPath(),this.ctx.roundRect(E,k,M,C,4),this.ctx.fill(),this.ctx.stroke(),this.ctx.fillStyle="#38bdf8",this.ctx.font="bold 11px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign="center",this.ctx.textBaseline="middle",this.ctx.fillText(`👤 ${L}`,l.x,k+C*.5),this.ctx.restore()}drawSubject3D(s,e){const i=this.subjectHeight,t=s(0,0,0),a=s(0,0,i);if(this.ctx.save(),this.subjectType==="tree"){this.ctx.strokeStyle="#92400e",this.ctx.lineWidth=Math.max(4,e*.25),this.ctx.beginPath(),this.ctx.moveTo(t.x,t.y),this.ctx.lineTo(a.x,a.y+(t.y-a.y)*.4),this.ctx.stroke();const n=s(0,0,i*.7),r=(t.y-a.y)*.45,c=this.ctx.createRadialGradient(n.x,n.y,r*.1,n.x,n.y,r);c.addColorStop(0,"#4ade80"),c.addColorStop(.7,"#16a34a"),c.addColorStop(1,"#14532d"),this.ctx.fillStyle=c,this.ctx.beginPath(),this.ctx.arc(n.x,n.y,r,0,S*2),this.ctx.fill()}else if(this.subjectType==="building"){const n=i*.6,r=s(-n*.5,-n*.5,0),c=s(n*.5,-n*.5,0),l=s(n*.5,n*.5,0),d=s(-n*.5,-n*.5,i),o=s(n*.5,-n*.5,i),u=s(n*.5,n*.5,i),x=s(-n*.5,n*.5,i);this.ctx.fillStyle="rgba(51, 65, 85, 0.9)",this.ctx.strokeStyle="#94a3b8",this.ctx.lineWidth=1.5,this.ctx.beginPath(),this.ctx.moveTo(r.x,r.y),this.ctx.lineTo(c.x,c.y),this.ctx.lineTo(o.x,o.y),this.ctx.lineTo(d.x,d.y),this.ctx.closePath(),this.ctx.fill(),this.ctx.stroke(),this.ctx.beginPath(),this.ctx.moveTo(c.x,c.y),this.ctx.lineTo(l.x,l.y),this.ctx.lineTo(u.x,u.y),this.ctx.lineTo(o.x,o.y),this.ctx.closePath(),this.ctx.fill(),this.ctx.stroke(),this.ctx.fillStyle="rgba(71, 85, 105, 0.95)",this.ctx.beginPath(),this.ctx.moveTo(d.x,d.y),this.ctx.lineTo(o.x,o.y),this.ctx.lineTo(u.x,u.y),this.ctx.lineTo(x.x,x.y),this.ctx.closePath(),this.ctx.fill(),this.ctx.stroke()}else{const n=a.y,r=t.y,c=r-n;this.ctx.strokeStyle="#f8fafc",this.ctx.lineWidth=3,this.ctx.beginPath(),this.ctx.arc(t.x,n+5,5.5,0,S*2),this.ctx.fillStyle="#f8fafc",this.ctx.fill(),this.ctx.beginPath(),this.ctx.moveTo(t.x,n+11),this.ctx.lineTo(t.x,r-c*.4),this.ctx.lineTo(t.x-6,r),this.ctx.moveTo(t.x,r-c*.4),this.ctx.lineTo(t.x+6,r),this.ctx.moveTo(t.x-8,n+18),this.ctx.lineTo(t.x+8,n+18),this.ctx.stroke()}const h=t.x+20;this.ctx.strokeStyle="rgba(255, 255, 255, 0.35)",this.ctx.lineWidth=1,this.ctx.beginPath(),this.ctx.moveTo(h,t.y),this.ctx.lineTo(h,a.y),this.ctx.moveTo(h-3,t.y),this.ctx.lineTo(h+3,t.y),this.ctx.moveTo(h-3,a.y),this.ctx.lineTo(h+3,a.y),this.ctx.stroke(),this.ctx.fillStyle="#cbd5e1",this.ctx.font="10px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign="left",this.ctx.fillText(`${this.subjectHeight.toFixed(1)}m`,h+6,(t.y+a.y)*.5+3),this.ctx.restore()}drawSunInSky(s,e,i,t,a,h,n){if(a<=-.833){this.drawSubHorizonIndicator(s,e,a);return}const r=(h-this.camera.azimuth)*g,c=Math.min(s,e)*.42;let l=i+y(r)*c*1.1;const d=Math.sin(Math.max(0,a)*g);let o=t-25-d*(e*.45);l=Math.max(30,Math.min(s-30,l)),o=Math.max(28,Math.min(e*.65,o)),this.ctx.save();const u=40,x=this.ctx.createRadialGradient(l,o,4,l,o,u);a<6?(x.addColorStop(0,"#fbbf24"),x.addColorStop(.35,"rgba(245, 158, 11, 0.6)"),x.addColorStop(1,"rgba(180, 83, 9, 0)")):(x.addColorStop(0,"#ffffff"),x.addColorStop(.3,"rgba(253, 224, 71, 0.7)"),x.addColorStop(.7,"rgba(245, 158, 11, 0.3)"),x.addColorStop(1,"rgba(245, 158, 11, 0)")),this.ctx.fillStyle=x,this.ctx.beginPath(),this.ctx.arc(l,o,u,0,S*2),this.ctx.fill(),this.ctx.fillStyle=a<6?"#fef08a":"#ffffff",this.ctx.beginPath(),this.ctx.arc(l,o,11,0,S*2),this.ctx.fill();const m=n(0,0,this.subjectHeight);this.ctx.strokeStyle="rgba(251, 191, 36, 0.4)",this.ctx.lineWidth=1.5,this.ctx.setLineDash([4,4]),this.ctx.beginPath(),this.ctx.moveTo(l,o),this.ctx.lineTo(m.x,m.y),this.ctx.stroke(),this.ctx.setLineDash([]),this.ctx.fillStyle="#fbbf24",this.ctx.font="bold 11px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign=l>i?"left":"right";const p=l>i?l+16:l-16;this.ctx.fillText(`SOL ${a>=0?"+":""}${a.toFixed(1)}°`,p,o-4),this.ctx.fillStyle="#94a3b8",this.ctx.fillText(`${h.toFixed(0)}° ${v.getCompassDirection(h)}`,p,o+10),this.ctx.restore()}drawSubHorizonIndicator(s,e,i){this.ctx.save(),this.ctx.fillStyle="#818cf8",this.ctx.font="bold 12px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign="center";const t=i<-18?"ASTRONOMISK NAT":i<-6?"TUSMØRKE":"BLÅ TIME";this.ctx.fillText(`☾ ${t} (SOL ${i.toFixed(1)}° UNDER HORISONTEN)`,s*.5,34),this.ctx.font="10px -apple-system, BlinkMacSystemFont, sans-serif",this.ctx.fillStyle="#64748b",this.ctx.fillText("Ingen hårde direkte skygger – diffus belysning",s*.5,50),this.ctx.restore()}drawEvfOverlay(s,e){const i="rgba(255, 255, 255, 0.2)";this.ctx.save(),this.ctx.strokeStyle=i,this.ctx.lineWidth=1.5,this.ctx.beginPath(),this.ctx.moveTo(12,26),this.ctx.lineTo(12,12),this.ctx.lineTo(26,12),this.ctx.moveTo(s-12-14,12),this.ctx.lineTo(s-12,12),this.ctx.lineTo(s-12,26),this.ctx.moveTo(12,e-12-14),this.ctx.lineTo(12,e-12),this.ctx.lineTo(26,e-12),this.ctx.moveTo(s-12-14,e-12),this.ctx.lineTo(s-12,e-12),this.ctx.lineTo(s-12,e-12-14),this.ctx.stroke(),this.ctx.fillStyle="rgba(148, 163, 184, 0.5)",this.ctx.font="9px ui-monospace, SFMono-Regular, monospace",this.ctx.textAlign="center",this.ctx.fillText("TRÆK FOR AT ROTERE 3D-SØGER",s*.5,e-16),this.ctx.restore()}renderCompassView(s,e){const i=s*.5,t=e*.5,a=Math.min(s,e)*.42;this.ctx.fillStyle="#070a12",this.ctx.fillRect(0,0,s,e),this.ctx.save(),this.ctx.beginPath(),this.ctx.arc(i,t,a,0,S*2),this.ctx.fillStyle="#0f172a",this.ctx.fill(),this.ctx.strokeStyle="rgba(255, 255, 255, 0.15)",this.ctx.lineWidth=2,this.ctx.stroke();for(let c=0;c<360;c+=10){const l=(c-90)*g,d=c%30===0,o=c%90===0,u=o?12:d?8:4,x=i+f(l)*a,m=t+y(l)*a,p=i+f(l)*(a-u),b=t+y(l)*(a-u);if(this.ctx.beginPath(),this.ctx.moveTo(x,m),this.ctx.lineTo(p,b),this.ctx.strokeStyle=o?"#38bdf8":"rgba(255, 255, 255, 0.12)",this.ctx.lineWidth=o?2:1,this.ctx.stroke(),d){const T=i+f(l)*(a-20),L=t+y(l)*(a-20);this.ctx.font=o?"bold 12px ui-monospace, monospace":"9px ui-monospace, monospace",this.ctx.textAlign="center",this.ctx.textBaseline="middle",this.ctx.fillStyle=o?c===0?"#f43f5e":"#38bdf8":"#64748b";const M=c===0?"N":c===90?"Ø":c===180?"S":c===270?"V":`${c}°`;this.ctx.fillText(M,T,L)}}if(this.simData.sunTimes?.sunrise&&this.simData.sunTimes?.sunset){const c=v.getSunPosition(this.simData.sunTimes.sunrise,55.67,12.56),l=v.getSunPosition(this.simData.sunTimes.sunset,55.67,12.56);this.ctx.beginPath();const d=(c.azimuth-90)*g,o=(l.azimuth-90)*g;this.ctx.arc(i,t,a*.75,d,o,!1),this.ctx.strokeStyle="rgba(245, 158, 11, 0.35)",this.ctx.lineWidth=3,this.ctx.stroke()}const h=(this.simData.sunAzimuth-90)*g,n=i+f(h)*(a*.92),r=t+y(h)*(a*.92);if(this.ctx.strokeStyle="#f59e0b",this.ctx.lineWidth=2,this.ctx.beginPath(),this.ctx.moveTo(i,t),this.ctx.lineTo(n,r),this.ctx.stroke(),this.ctx.fillStyle="#fbbf24",this.ctx.beginPath(),this.ctx.arc(n,r,8,0,S*2),this.ctx.fill(),this.simData.hasDirectShadow){const c=(this.simData.shadowAzimuth-90)*g,l=Math.min(a*.85,this.simData.shadowLength/10*a*.5),d=i+f(c)*l,o=t+y(c)*l;this.ctx.strokeStyle="#38bdf8",this.ctx.lineWidth=3,this.ctx.beginPath(),this.ctx.moveTo(i,t),this.ctx.lineTo(d,o),this.ctx.stroke(),this.ctx.fillStyle="#38bdf8",this.ctx.beginPath(),this.ctx.arc(d,o,5,0,S*2),this.ctx.fill()}this.ctx.fillStyle="#ffffff",this.ctx.beginPath(),this.ctx.arc(i,t,4,0,S*2),this.ctx.fill(),this.ctx.restore()}}class A{container;map=null;L=null;marker=null;sunRayLine=null;shadowLine=null;isLoaded=!1;constructor(s){this.container=s}async init(s,e){if(this.isLoaded)return;const i=await R(()=>import("./leaflet-src-DTmlu4rB.js").then(h=>h.l),[],import.meta.url);this.L=i.default||i,this.isLoaded=!0,this.map=this.L.map(this.container,{center:[s,e],zoom:16,zoomControl:!1,attributionControl:!1}),this.L.control.zoom({position:"bottomright"}).addTo(this.map),this.L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd"}).addTo(this.map);const a=this.L.divIcon({className:"fs-leaflet-icon",html:`
+      <div style="width:28px;height:28px;border-radius:50%;background:#07080a;border:2px solid #f59e0b;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(245,158,11,0.5);">
+        <span style="font-size:12px;">📷</span>
+      </div>
+    `,iconSize:[28,28],iconAnchor:[14,14]});this.marker=this.L.marker([s,e],{icon:a}).addTo(this.map),this.sunRayLine=this.L.polyline([],{color:"#f59e0b",weight:3,dashArray:"6, 6"}).addTo(this.map),this.shadowLine=this.L.polyline([],{color:"#38bdf8",weight:4}).addTo(this.map),this.invalidateSize()}update(s,e,i,t,a){if(!this.map||!this.L)return;const h=[s,e];this.marker.setLatLng(h);const n=this.calculateDestination(s,e,200,(i+180)%360);this.sunRayLine.setLatLngs([h,n]);const r=Math.max(10,Math.min(250,a)),c=this.calculateDestination(s,e,r,t);this.shadowLine.setLatLngs([h,c])}setCenter(s,e){this.map&&(this.map.setView([s,e],this.map.getZoom()),this.invalidateSize())}invalidateSize(){this.map&&setTimeout(()=>{this.map?.invalidateSize()},50)}calculateDestination(s,e,i,t){const h=i,n=t*Math.PI/180,r=s*Math.PI/180,c=e*Math.PI/180,l=Math.asin(Math.sin(r)*Math.cos(h/6371e3)+Math.cos(r)*Math.sin(h/6371e3)*Math.cos(n)),d=c+Math.atan2(Math.sin(n)*Math.sin(h/6371e3)*Math.cos(r),Math.cos(h/6371e3)-Math.sin(r)*Math.sin(l));return[l*180/Math.PI,d*180/Math.PI]}}class ${container;simulator=null;mapView=null;activeViewMode="3d";subjectType="person";subjectHeight=1.75;currentDate=new Date;currentLocation=D.getLocation();isPlaying=!1;playSpeed=1;playIntervalId=null;unsubLocation=null;async mount(s){this.container=s,this.currentLocation=D.getLocation(),this.currentDate=w.getDate(),this.render(),this.initSimulator(),this.attachEventListeners(),this.updateCalculations(),this.unsubLocation=D.subscribe(e=>{this.currentLocation=e,this.updateLocationDisplay(),this.updateCalculations(),this.mapView&&this.mapView.setCenter(e.lat,e.lng)})}onActivate(s){if(this.simulator?.resume(),s?.date&&(this.currentDate=new Date(s.date)),s?.params){const e=s.params;if(e.has("hour")){const i=Number(e.get("hour"))||12;this.currentDate.setHours(i,0,0,0)}if(e.has("lat")&&e.has("lng")){const i=Number(e.get("lat")),t=Number(e.get("lng"));!isNaN(i)&&!isNaN(t)&&(this.currentLocation=D.setLocation({lat:i,lng:t,name:e.get("name")||"Valgt position"}))}}this.updateLocationDisplay(),this.updateCalculations(),this.activeViewMode==="map"&&this.mapView?.invalidateSize()}onDeactivate(){this.pausePlayback(),this.simulator?.pause()}destroy(){this.pausePlayback(),this.unsubLocation&&this.unsubLocation()}render(){const s=this.currentDate.getHours()*60+this.currentDate.getMinutes();this.container.innerHTML=`
+      <div class="sun-container">
+        <!-- Modul header -->
+        <div class="sun-header">
+          <div class="sun-module-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+            </svg>
+            <span>FotoSol • Sol & Skygge</span>
+          </div>
+          <span class="fs-badge badge-sun" id="sunPhaseHeaderBadge">Gylden time</span>
+        </div>
+
+        <!-- LOKATION -->
+        <div class="location-bar">
+          <div class="loc-info-group" id="btnOpenLocationModal" title="Vælg lokation">
+            <span class="loc-main-name" id="sunLocName">${this.currentLocation.name}</span>
+            <span class="loc-sub-coords" id="sunLocCoords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø</span>
+          </div>
+          <div class="loc-actions">
+            <button class="fs-btn-icon" id="btnSunGps" title="Brug aktuel GPS-position" aria-label="Brug GPS">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="8"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- HERO TELEMETRI -->
+        <div class="sun-hero-card">
+          <div class="sun-main-telemetry">
+            <div>
+              <div class="sun-time-large" id="sunTimeDisplay">${w.formatTime(this.currentDate)}</div>
+              <div class="sun-date-sub" id="sunDateDisplay">${w.formatDateDanish(this.currentDate)}</div>
+            </div>
+            <div class="sun-phase-badge-wrap">
+              <span class="fs-badge badge-sun" id="sunLightPhaseBadge">Gylden time</span>
+              <span class="sun-kelvin-badge" id="sunKelvinDisplay">3300K</span>
+            </div>
+          </div>
+
+          <div class="sun-grid-metrics">
+            <div class="stat-item">
+              <span class="stat-label">Solhøjde</span>
+              <span class="stat-num" id="sunAltitudeVal">+0.0°</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Solretning</span>
+              <span class="stat-num" id="sunAzimuthVal">180° S</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Skyggelængde</span>
+              <span class="stat-num" id="sunShadowLengthVal">0,0 m</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D / KOMPAS / KORT VISNING KORT -->
+        <div class="sun-scene-card">
+          <div class="scene-header-row">
+            <div class="fs-segmented-control" style="max-width: 250px;">
+              <button class="fs-segment-btn ${this.activeViewMode==="3d"?"active":""}" data-mode="3d" id="btnMode3D">3D Søger</button>
+              <button class="fs-segment-btn ${this.activeViewMode==="compass"?"active":""}" data-mode="compass" id="btnModeCompass">Kompas</button>
+              <button class="fs-segment-btn ${this.activeViewMode==="map"?"active":""}" data-mode="map" id="btnModeMap">Kort</button>
+            </div>
+            <span style="font-size: 11px; color: var(--text-dim);" id="sunSceneHint">3D EVF</span>
+          </div>
+
+          <div class="canvas-viewport-wrap">
+            <canvas id="sunCanvas" style="${this.activeViewMode!=="map"?"":"display: none;"}"></canvas>
+            <div id="sunMapContainer" style="${this.activeViewMode==="map"?"":"display: none;"}"></div>
+          </div>
+
+          <!-- 3D Kameragenveje -->
+          <div class="camera-preset-bar" id="cameraPresetsWrap" style="${this.activeViewMode==="3d"?"":"display: none;"}">
+            <button class="quick-val-btn" data-cam="default">Standard 3D</button>
+            <button class="quick-val-btn" data-cam="top">Fugleperspektiv</button>
+            <button class="quick-val-btn" data-cam="rim">Modlys (Rim)</button>
+            <button class="quick-val-btn" data-cam="shadow">Medlys (Skygge)</button>
+          </div>
+        </div>
+
+        <!-- TIDSLINJE & SCRUBBER -->
+        <div class="timeline-card">
+          <div class="timeline-controls-row">
+            <div class="playback-btns">
+              <button class="btn-play-pause" id="btnPlayPause" title="Start/Pause tidsanimation" aria-label="Afspil">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+              <button class="btn-speed-badge" id="btnSpeedToggle">1x</button>
+            </div>
+            <button class="fs-btn" id="btnJumpNow" style="padding: 4px 10px; font-size: 11px; min-height: 32px;">
+              Nu
+            </button>
+          </div>
+
+          <div class="fs-slider-wrap">
+            <input type="range" id="sunTimeSlider" min="0" max="1439" step="1" value="${s}">
+          </div>
+
+          <!-- HURTIGE SPRING I DØGNET -->
+          <div class="sun-jump-scroll" id="sunQuickJumps">
+            <!-- Udfyldes dynamisk ud fra dagens astronomiske soltider -->
+          </div>
+        </div>
+
+        <!-- MOTIV OG SKYGGEINDSTILLINGER -->
+        <div class="fs-card">
+          <div class="fs-card-header">
+            <span class="fs-card-title">Motiv & Skygge</span>
+            <span class="fs-badge" id="subjectHeightBadge">1.75 m</span>
+          </div>
+
+          <div class="subject-selector-row">
+            <button class="subject-btn ${this.subjectType==="person"?"active":""}" data-subject="person" data-height="1.75">
+              <span class="subject-icon">👤</span>
+              <span class="subject-name">Person</span>
+            </button>
+            <button class="subject-btn ${this.subjectType==="tree"?"active":""}" data-subject="tree" data-height="5.0">
+              <span class="subject-icon">🌳</span>
+              <span class="subject-name">Træ</span>
+            </button>
+            <button class="subject-btn ${this.subjectType==="building"?"active":""}" data-subject="building" data-height="12.0">
+              <span class="subject-icon">🏢</span>
+              <span class="subject-name">Bygning</span>
+            </button>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <p id="sunShadowTip" style="font-size: 13px; color: var(--text-muted); line-height: 1.4;"></p>
+          </div>
+        </div>
+      </div>
+    `}initSimulator(){const s=this.container.querySelector("#sunCanvas");s&&(this.simulator=new I(s,{mode:this.activeViewMode==="compass"?"compass":"3d",subjectType:this.subjectType,subjectHeight:this.subjectHeight}))}attachEventListeners(){const s=this.container.querySelector("#btnMode3D"),e=this.container.querySelector("#btnModeCompass"),i=this.container.querySelector("#btnModeMap"),t=this.container.querySelector("#sunCanvas"),a=this.container.querySelector("#sunMapContainer"),h=this.container.querySelector("#cameraPresetsWrap"),n=this.container.querySelector("#sunSceneHint"),r=async o=>{this.activeViewMode=o,s?.classList.toggle("active",o==="3d"),e?.classList.toggle("active",o==="compass"),i?.classList.toggle("active",o==="map"),o==="map"?(t.style.display="none",a.style.display="block",h.style.display="none",n&&(n.textContent="Satellitkort"),this.mapView||(this.mapView=new A(a),await this.mapView.init(this.currentLocation.lat,this.currentLocation.lng)),this.mapView.invalidateSize()):(t.style.display="block",a.style.display="none",h.style.display=o==="3d"?"flex":"none",n&&(n.textContent=o==="3d"?"3D EVF":"Top-down Solur"),this.simulator?.setMode(o)),this.updateCalculations()};s?.addEventListener("click",()=>r("3d")),e?.addEventListener("click",()=>r("compass")),i?.addEventListener("click",()=>r("map")),this.container.querySelectorAll("[data-cam]").forEach(o=>{o.addEventListener("click",()=>{const u=o.dataset.cam;this.simulator?.resetCamera(u)})});const c=this.container.querySelector("#sunTimeSlider");c?.addEventListener("input",()=>{this.pausePlayback();const o=Number(c.value),u=Math.floor(o/60),x=o%60;this.currentDate.setHours(u,x,0,0),this.updateCalculations()}),this.container.querySelector("#btnPlayPause")?.addEventListener("click",()=>{this.isPlaying?this.pausePlayback():this.startPlayback()});const d=this.container.querySelector("#btnSpeedToggle");d?.addEventListener("click",()=>{this.playSpeed===1?this.playSpeed=2:this.playSpeed===2?this.playSpeed=4:this.playSpeed=1,d&&(d.textContent=`${this.playSpeed}x`),this.isPlaying&&(this.pausePlayback(),this.startPlayback())}),this.container.querySelector("#btnJumpNow")?.addEventListener("click",()=>{this.pausePlayback(),this.currentDate=new Date,c.value=String(this.currentDate.getHours()*60+this.currentDate.getMinutes()),this.updateCalculations()}),this.container.querySelector("#btnSunGps")?.addEventListener("click",async()=>{try{const o=this.container.querySelector("#btnSunGps");o.style.opacity="0.5";const u=await D.requestGpsLocation();this.currentLocation=u,this.updateLocationDisplay(),this.updateCalculations(),o.style.opacity="1"}catch(o){alert(o.message)}}),this.container.querySelectorAll("[data-subject]").forEach(o=>{o.addEventListener("click",()=>{const u=o,x=u.dataset.subject,m=Number(u.dataset.height);this.subjectType=x,this.subjectHeight=m,this.container.querySelectorAll("[data-subject]").forEach(b=>b.classList.remove("active")),u.classList.add("active");const p=this.container.querySelector("#subjectHeightBadge");p&&(p.textContent=`${m.toFixed(1)} m`),this.simulator?.setSubjectType(x,m),this.updateCalculations()})})}startPlayback(){this.isPlaying=!0;const s=this.container.querySelector("#btnPlayPause");s&&(s.innerHTML=`
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+      `);const e=Math.max(25,Math.floor(100/this.playSpeed));this.playIntervalId=setInterval(()=>{this.currentDate=new Date(this.currentDate.getTime()+2*60*1e3);const i=this.currentDate.getHours()*60+this.currentDate.getMinutes(),t=this.container.querySelector("#sunTimeSlider");t&&(t.value=String(i)),this.updateCalculations()},e)}pausePlayback(){this.isPlaying=!1,this.playIntervalId&&(clearInterval(this.playIntervalId),this.playIntervalId=null);const s=this.container.querySelector("#btnPlayPause");s&&(s.innerHTML=`
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      `)}updateLocationDisplay(){const s=this.container.querySelector("#sunLocName"),e=this.container.querySelector("#sunLocCoords");s&&(s.textContent=this.currentLocation.name),e&&(e.textContent=`${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø`)}updateCalculations(){const s=this.currentLocation.lat,e=this.currentLocation.lng,i=v.getSunPosition(this.currentDate,s,e),t=v.getSunTimes(this.currentDate,s,e),a=v.calculateShadow(i.altitude,i.azimuth,this.subjectHeight),h=v.getEstimatedKelvin(i.altitude),n=this.container.querySelector("#sunTimeDisplay"),r=this.container.querySelector("#sunDateDisplay"),c=this.container.querySelector("#sunAltitudeVal"),l=this.container.querySelector("#sunAzimuthVal"),d=this.container.querySelector("#sunShadowLengthVal"),o=this.container.querySelector("#sunKelvinDisplay"),u=this.container.querySelector("#sunLightPhaseBadge"),x=this.container.querySelector("#sunPhaseHeaderBadge"),m=this.container.querySelector("#sunShadowTip");n&&(n.textContent=w.formatTime(this.currentDate)),r&&(r.textContent=w.formatDateDanish(this.currentDate)),c&&(c.textContent=`${i.altitude>=0?"+":""}${i.altitude.toFixed(1)}°`),l&&(l.textContent=`${i.azimuth.toFixed(0)}° ${v.getCompassDirection(i.azimuth)}`),d&&(d.textContent=a.hasDirectShadow?`${a.shadowLength.toFixed(1).replace(".",",")} m`:"Ingen (Diffust)"),o&&(o.textContent=`${h.kelvin}K (${h.label})`),u&&(u.textContent=a.lightPhase.badge,u.setAttribute("style",`background: ${a.lightPhase.color}33; color: ${a.lightPhase.color};`)),x&&(x.textContent=a.lightPhase.name),m&&(m.textContent=`${a.description} ${a.cameraTip}`),this.simulator?.update(i.altitude,i.azimuth,this.subjectHeight,{subjectType:this.subjectType,sunTimes:t}),this.activeViewMode==="map"&&this.mapView&&this.mapView.update(s,e,i.azimuth,a.shadowAzimuth,a.shadowLength),this.renderQuickJumps(t)}renderQuickJumps(s){const e=this.container.querySelector("#sunQuickJumps");if(!e)return;const i=[{name:"Blå time",time:s.blueHourMorning?.start},{name:"Solopgang",time:s.sunrise},{name:"Gylden time",time:s.goldenHourMorning?.end},{name:"Solmiddag",time:s.solarNoon},{name:"Gylden time",time:s.goldenHourEvening?.start},{name:"Solnedgang",time:s.sunset},{name:"Blå time",time:s.blueHourEvening?.end}].filter(t=>t.time!==null&&t.time!==void 0);e.innerHTML=i.map(t=>`
+      <button class="sun-jump-btn" data-time="${t.time.getTime()}">
+        <span class="jump-time">${w.formatTime(t.time)}</span>
+        <span class="jump-name">${t.name}</span>
+      </button>
+    `).join(""),e.querySelectorAll("[data-time]").forEach(t=>{t.addEventListener("click",()=>{this.pausePlayback();const a=Number(t.dataset.time);this.currentDate=new Date(a);const h=this.currentDate.getHours()*60+this.currentDate.getMinutes(),n=this.container.querySelector("#sunTimeSlider");n&&(n.value=String(h)),this.updateCalculations()})})}}export{$ as default};
