@@ -96,4 +96,88 @@ describe('WeatherEngine - Fotografiske vurderingsmodeller', () => {
     expect(WeatherEngine.getWeatherCodeDescription(63).desc).toBe('Moderat regn');
     expect(WeatherEngine.getWeatherCodeDescription(95).desc).toBe('Tordenvejr');
   });
+
+  describe('WeatherEngine - Tidshåndtering og overskredne tidspunkter (getEventTiming)', () => {
+    const today = new Date('2026-10-21T14:00:00');
+
+    it('Marker begivenhed som passeret når sluttidspunkt er overskredet tidligere i dag', () => {
+      const mornStart = new Date('2026-10-21T06:30:00');
+      const mornEnd = new Date('2026-10-21T07:45:00');
+
+      const timing = WeatherEngine.getEventTiming(mornStart, mornEnd, 0, today, 'morning', 80, today);
+
+      expect(timing.isPassed).toBe(true);
+      expect(timing.status).toBe('passed');
+      expect(timing.bannerClass).toBe('banner-passed');
+      expect(timing.pill).toBe('Passeret');
+      expect(timing.label).toContain('I morges • For');
+      expect(timing.label).toContain('siden');
+    });
+
+    it('Marker aftenbegivenhed som passeret når aftenlys er forbi', () => {
+      const eveningEnd = new Date('2026-10-21T19:00:00');
+      const lateEvening = new Date('2026-10-21T21:30:00');
+
+      const timing = WeatherEngine.getEventTiming(
+        new Date('2026-10-21T18:00:00'),
+        eveningEnd,
+        0,
+        today,
+        'evening',
+        75,
+        lateEvening
+      );
+
+      expect(timing.isPassed).toBe(true);
+      expect(timing.status).toBe('passed');
+      expect(timing.pill).toBe('Passeret');
+      expect(timing.label).toContain('I aften • For');
+    });
+
+    it('Marker begivenhed som aktiv lige nu når aktuel tid er i intervallet', () => {
+      const start = new Date('2026-10-21T13:30:00');
+      const end = new Date('2026-10-21T14:30:00');
+
+      const timing = WeatherEngine.getEventTiming(start, end, 0, today, 'fog', 60, today);
+
+      expect(timing.isPassed).toBe(false);
+      expect(timing.status).toBe('active');
+      expect(timing.pill).toBe('Aktiv nu');
+      expect(timing.label).toContain('slutter om 30 min');
+    });
+
+    it('Marker begivenhed som kommende når starttidspunkt er senere i dag', () => {
+      const sunsetStart = new Date('2026-10-21T17:45:00');
+      const sunsetEnd = new Date('2026-10-21T18:45:00');
+
+      const timing = WeatherEngine.getEventTiming(sunsetStart, sunsetEnd, 0, today, 'evening', 80, today);
+
+      expect(timing.isPassed).toBe(false);
+      expect(timing.status).toBe('upcoming');
+      expect(timing.pill).toBe('Kommende');
+      expect(timing.label).toContain('I aften • Om');
+    });
+
+    it('Marker begivenheder i morgen med I morgen banner og om-tid', () => {
+      const tomorrowMorn = new Date('2026-10-22T06:30:00');
+      const tomorrowDate = new Date('2026-10-22T00:00:00');
+
+      const timing = WeatherEngine.getEventTiming(tomorrowMorn, null, 1, tomorrowDate, 'morning', 70, today);
+
+      expect(timing.isPassed).toBe(false);
+      expect(timing.status).toBe('future');
+      expect(timing.pill).toBe('I morgen');
+      expect(timing.label).toContain('I morgen tidlig • Om');
+    });
+
+    it('Marker begivenheder på fremtidige dage (dag 2+) med ugedag', () => {
+      const fridayDate = new Date('2026-10-23T00:00:00'); // Fredag
+      const timing = WeatherEngine.getEventTiming(null, null, 2, fridayDate, 'evening', 70, today);
+
+      expect(timing.isPassed).toBe(false);
+      expect(timing.status).toBe('future-distant');
+      expect(timing.pill).toBe('Fredag');
+      expect(timing.label).toContain('Fredag aften • Om 2 dage');
+    });
+  });
 });
