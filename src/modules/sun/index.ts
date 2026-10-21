@@ -59,6 +59,14 @@ export default class SunModule implements ModuleInstance {
     }
     if (context?.params) {
       const p = context.params as URLSearchParams;
+      if (p.has('date')) {
+        const dStr = p.get('date')!;
+        const parsed = TimeService.parseIsoDate(dStr);
+        if (parsed) {
+          parsed.setHours(this.currentDate.getHours(), this.currentDate.getMinutes(), 0, 0);
+          this.currentDate = parsed;
+        }
+      }
       if (p.has('hour')) {
         const h = Number(p.get('hour')) || 12;
         this.currentDate.setHours(h, 0, 0, 0);
@@ -136,7 +144,7 @@ export default class SunModule implements ModuleInstance {
           <div class="sun-main-telemetry">
             <div>
               <div class="sun-time-large" id="sunTimeDisplay">${TimeService.formatTime(this.currentDate)}</div>
-              <div class="sun-date-sub" id="sunDateDisplay">${TimeService.formatDateDanish(this.currentDate)}</div>
+              <div class="sun-date-sub" id="sunDateDisplay" role="button" tabindex="0" title="Tryk for at vælge dato">${TimeService.formatDateDanish(this.currentDate)}</div>
             </div>
             <div class="sun-phase-badge-wrap">
               <span class="fs-badge badge-sun" id="sunLightPhaseBadge">Gylden time</span>
@@ -185,8 +193,70 @@ export default class SunModule implements ModuleInstance {
           </div>
         </div>
 
-        <!-- TIDSLINJE & SCRUBBER -->
+        <!-- TIDSLINJE, DATO & SCRUBBER -->
         <div class="timeline-card">
+          <!-- DATO-VÆLGER OG PLANLÆGNING (§7) -->
+          <div class="sun-planner-section">
+            <div class="sun-planner-header">
+              <div class="sun-planner-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Planlæg dato</span>
+              </div>
+              <span class="fs-badge" id="sunDateStatusBadge">I dag</span>
+            </div>
+
+            <!-- DATO NAVIGATIONSLINJE: [-1 dag] [DATO DISPLAY + NATIV DATOVÆLGER] [+1 dag] -->
+            <div class="sun-date-nav-row">
+              <button class="fs-btn-icon sun-day-step-btn" id="btnPrevDay" title="Forrige dag (-1 dag)" aria-label="Forrige dag">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+
+              <div class="sun-date-box" id="sunDateBox" title="Tryk for at vælge dato i kalenderen">
+                <input type="date" id="sunDatePickerInput" class="sun-date-input" value="${TimeService.formatIsoDate(this.currentDate)}" aria-label="Vælg dato">
+                <div class="sun-date-box-content">
+                  <div class="sun-date-box-main">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span id="sunDateMainLabel">${TimeService.formatDateDanish(this.currentDate)} ${this.currentDate.getFullYear()}</span>
+                  </div>
+                  <div class="sun-date-box-sub" id="sunDateSubLabel">Tryk for kalender • Dags dato</div>
+                </div>
+              </div>
+
+              <button class="fs-btn-icon sun-day-step-btn" id="btnNextDay" title="Næste dag (+1 dag)" aria-label="Næste dag">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <!-- HURTIGE PLANLÆGNINGSGENVEJE -->
+            <div class="sun-date-presets-scroll" id="sunDatePresets">
+              <button class="sun-preset-pill active" data-preset="today">I dag</button>
+              <button class="sun-preset-pill" data-preset="tomorrow">I morgen</button>
+              <button class="sun-preset-pill" data-preset="day-after">I overmorgen</button>
+              <button class="sun-preset-pill" data-preset="week">+7 dage</button>
+              <button class="sun-preset-pill" data-preset="month">+30 dage</button>
+              <button class="sun-preset-pill" data-preset="summer-solstice" title="Sommersolhverv (21. jun)">☀️ Sommersolhverv</button>
+              <button class="sun-preset-pill" data-preset="autumn-equinox" title="Efterårsjævndøgn (22. sep)">🍂 Efterårsjævndøgn</button>
+              <button class="sun-preset-pill" data-preset="winter-solstice" title="Vintersolhverv (21. dec)">❄️ Vintersolhverv</button>
+              <button class="sun-preset-pill" data-preset="spring-equinox" title="Forårsjævndøgn (20. mar)">🌱 Forårsjævndøgn</button>
+            </div>
+          </div>
+
+          <div class="sun-timeline-divider"></div>
+
           <div class="timeline-controls-row">
             <div class="playback-btns">
               <button class="btn-play-pause" id="btnPlayPause" title="Start/Pause tidsanimation" aria-label="Afspil">
@@ -196,8 +266,8 @@ export default class SunModule implements ModuleInstance {
               </button>
               <button class="btn-speed-badge" id="btnSpeedToggle">1x</button>
             </div>
-            <button class="fs-btn" id="btnJumpNow" style="padding: 4px 10px; font-size: 11px; min-height: 32px;">
-              Nu
+            <button class="fs-btn" id="btnJumpNow" style="padding: 4px 10px; font-size: 11px; min-height: 32px;" title="Gå til dags dato og aktuel tid">
+              Nu (I dag)
             </button>
           </div>
 
@@ -328,6 +398,93 @@ export default class SunModule implements ModuleInstance {
       });
     });
 
+    // Datovælger & Planlægning listeners
+    const dateInput = this.container.querySelector('#sunDatePickerInput') as HTMLInputElement;
+    const handleDateInput = () => {
+      this.pausePlayback();
+      if (dateInput?.value) {
+        const parsed = TimeService.parseIsoDate(dateInput.value);
+        if (parsed) {
+          this.setDate(parsed);
+        }
+      }
+    };
+    dateInput?.addEventListener('change', handleDateInput);
+    dateInput?.addEventListener('input', handleDateInput);
+
+    // Åbn datovælger ved klik på datovisning i hero-kort eller datoboks
+    const openDatePicker = () => {
+      if (dateInput) {
+        if (typeof (dateInput as any).showPicker === 'function') {
+          try {
+            (dateInput as any).showPicker();
+          } catch {
+            dateInput.focus();
+            dateInput.click();
+          }
+        } else {
+          dateInput.focus();
+          dateInput.click();
+        }
+      }
+    };
+    this.container.querySelector('#sunDateDisplay')?.addEventListener('click', openDatePicker);
+
+    // Forrige / Næste dag knapper (-1 dag / +1 dag)
+    this.container.querySelector('#btnPrevDay')?.addEventListener('click', () => {
+      this.pausePlayback();
+      const d = new Date(this.currentDate);
+      d.setDate(d.getDate() - 1);
+      this.setDate(d);
+    });
+
+    this.container.querySelector('#btnNextDay')?.addEventListener('click', () => {
+      this.pausePlayback();
+      const d = new Date(this.currentDate);
+      d.setDate(d.getDate() + 1);
+      this.setDate(d);
+    });
+
+    // Hurtige planlægnings-presets
+    this.container.querySelectorAll('[data-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        this.pausePlayback();
+        const preset = (btn as HTMLElement).dataset.preset;
+        const now = new Date();
+        let target = new Date();
+        switch (preset) {
+          case 'today':
+            target = new Date();
+            break;
+          case 'tomorrow':
+            target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            break;
+          case 'day-after':
+            target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
+            break;
+          case 'week':
+            target = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), this.currentDate.getDate() + 7);
+            break;
+          case 'month':
+            target = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), this.currentDate.getDate() + 30);
+            break;
+          case 'summer-solstice':
+            target = TimeService.getNextSolsticeOrEquinox('summer-solstice', now);
+            break;
+          case 'autumn-equinox':
+            target = TimeService.getNextSolsticeOrEquinox('autumn-equinox', now);
+            break;
+          case 'winter-solstice':
+            target = TimeService.getNextSolsticeOrEquinox('winter-solstice', now);
+            break;
+          case 'spring-equinox':
+            target = TimeService.getNextSolsticeOrEquinox('spring-equinox', now);
+            break;
+        }
+        this.setDate(target);
+      });
+    });
+
     // Tidslinje slider
     const timeSlider = this.container.querySelector('#sunTimeSlider') as HTMLInputElement;
     timeSlider?.addEventListener('input', () => {
@@ -361,12 +518,13 @@ export default class SunModule implements ModuleInstance {
       }
     });
 
-    // "Nu" knap
+    // "Nu" knap (nulstil til aktuel dag og tid)
     this.container.querySelector('#btnJumpNow')?.addEventListener('click', () => {
       this.pausePlayback();
-      this.currentDate = new Date();
-      timeSlider.value = String(this.currentDate.getHours() * 60 + this.currentDate.getMinutes());
-      this.updateCalculations();
+      const now = new Date();
+      TimeService.setTimeToNow();
+      timeSlider.value = String(now.getHours() * 60 + now.getMinutes());
+      this.setDate(now);
     });
 
     // Genstandsvælgere
@@ -429,6 +587,77 @@ export default class SunModule implements ModuleInstance {
     }
   }
 
+  private setDate(newDate: Date): void {
+    const hours = this.currentDate.getHours();
+    const minutes = this.currentDate.getMinutes();
+    const seconds = this.currentDate.getSeconds();
+    this.currentDate = new Date(newDate);
+    this.currentDate.setHours(hours, minutes, seconds, 0);
+
+    TimeService.setDate(this.currentDate);
+
+    const dateInput = this.container.querySelector('#sunDatePickerInput') as HTMLInputElement;
+    if (dateInput) {
+      dateInput.value = TimeService.formatIsoDate(this.currentDate);
+    }
+
+    this.updateCalculations();
+  }
+
+  private updateDateDisplay(): void {
+    const isToday = TimeService.isToday(this.currentDate);
+    const relText = TimeService.formatRelativeDay(this.currentDate);
+    const formattedDanish = TimeService.formatDateDanish(this.currentDate);
+    const fullYear = this.currentDate.getFullYear();
+    const isoDate = TimeService.formatIsoDate(this.currentDate);
+
+    // Hero-kort datovisning
+    const heroDateEl = this.container.querySelector('#sunDateDisplay');
+    if (heroDateEl) {
+      if (isToday) {
+        heroDateEl.textContent = formattedDanish;
+      } else {
+        heroDateEl.innerHTML = `<span style="color: var(--accent-sun); font-weight: 700;">📅 Plan: ${TimeService.formatShortDate(this.currentDate)} (${relText})</span>`;
+      }
+    }
+
+    // Tidslinje datokomponent
+    const mainLabel = this.container.querySelector('#sunDateMainLabel');
+    const subLabel = this.container.querySelector('#sunDateSubLabel');
+    const statusBadge = this.container.querySelector('#sunDateStatusBadge');
+    const dateInput = this.container.querySelector('#sunDatePickerInput') as HTMLInputElement;
+
+    if (mainLabel) {
+      mainLabel.textContent = `${formattedDanish} ${fullYear}`;
+    }
+    if (subLabel) {
+      subLabel.textContent = isToday ? 'Tryk for kalender • Dags dato' : `Tryk for kalender • ${relText}`;
+    }
+    if (statusBadge) {
+      statusBadge.textContent = isToday ? 'I dag' : relText;
+      statusBadge.className = isToday ? 'fs-badge' : 'fs-badge badge-sun';
+    }
+    if (dateInput && dateInput.value !== isoDate) {
+      dateInput.value = isoDate;
+    }
+
+    // Preset knapper
+    const presetsWrap = this.container.querySelector('#sunDatePresets');
+    if (presetsWrap) {
+      presetsWrap.querySelectorAll('.sun-preset-pill').forEach((btn) => {
+        const p = (btn as HTMLElement).dataset.preset;
+        let isActive = false;
+        if (p === 'today' && isToday) isActive = true;
+        else if (p === 'tomorrow' && TimeService.isTomorrow(this.currentDate)) isActive = true;
+        else if (p === 'summer-solstice' && this.currentDate.getMonth() === 5 && this.currentDate.getDate() === 21) isActive = true;
+        else if (p === 'autumn-equinox' && this.currentDate.getMonth() === 8 && this.currentDate.getDate() === 22) isActive = true;
+        else if (p === 'winter-solstice' && this.currentDate.getMonth() === 11 && this.currentDate.getDate() === 21) isActive = true;
+        else if (p === 'spring-equinox' && this.currentDate.getMonth() === 2 && this.currentDate.getDate() === 20) isActive = true;
+        btn.classList.toggle('active', isActive);
+      });
+    }
+  }
+
   private updateLocationDisplay(): void {
     const nameEl = this.container.querySelector('#sunLocName');
     const coordsEl = this.container.querySelector('#sunLocCoords');
@@ -447,7 +676,6 @@ export default class SunModule implements ModuleInstance {
 
     // Opdater tal i interfacet
     const timeEl = this.container.querySelector('#sunTimeDisplay');
-    const dateEl = this.container.querySelector('#sunDateDisplay');
     const altEl = this.container.querySelector('#sunAltitudeVal');
     const azEl = this.container.querySelector('#sunAzimuthVal');
     const shadowEl = this.container.querySelector('#sunShadowLengthVal');
@@ -457,7 +685,7 @@ export default class SunModule implements ModuleInstance {
     const tipEl = this.container.querySelector('#sunShadowTip');
 
     if (timeEl) timeEl.textContent = TimeService.formatTime(this.currentDate);
-    if (dateEl) dateEl.textContent = TimeService.formatDateDanish(this.currentDate);
+    this.updateDateDisplay();
     if (altEl) altEl.textContent = `${sunPos.altitude >= 0 ? '+' : ''}${sunPos.altitude.toFixed(1)}°`;
     if (azEl) azEl.textContent = `${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}`;
     if (shadowEl) shadowEl.textContent = shadowCalc.hasDirectShadow ? `${shadowCalc.shadowLength.toFixed(1).replace('.', ',')} m` : 'Ingen (Diffust)';

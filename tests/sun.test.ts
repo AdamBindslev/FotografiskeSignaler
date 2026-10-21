@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AstroCore } from '../src/shared/astronomy/AstroCore.ts';
+import { TimeService } from '../src/shared/services/TimeService.ts';
 
 describe('AstroCore - Sol beregninger', () => {
   const cphLat = 55.6761;
@@ -56,5 +57,75 @@ describe('AstroCore - Sol beregninger', () => {
     expect(bluePhase.id).toBe('blue-hour');
     const kelvinBlue = AstroCore.getEstimatedKelvin(-5);
     expect(kelvinBlue.kelvin).toBe(9000);
+  });
+
+  it('Beregner astronomiske forskelle for planlægning frem i tiden (sommer vs. vinter)', () => {
+    // Planlægning: Midsommer (21. juni) vs. Midsvinter (21. december) i København
+    const summerDate = new Date('2027-06-21T12:00:00Z');
+    const winterDate = new Date('2026-12-21T12:00:00Z');
+
+    const summerTimes = AstroCore.getSunTimes(summerDate, cphLat, cphLng);
+    const winterTimes = AstroCore.getSunTimes(winterDate, cphLat, cphLng);
+
+    // Sommersolopgang er markant tidligere end vintersolopgang
+    expect(summerTimes.sunrise!.getTime()).toBeLessThan(summerTimes.sunset!.getTime());
+    expect(winterTimes.sunrise!.getTime()).toBeLessThan(winterTimes.sunset!.getTime());
+
+    // Dagens længde ved midsommer er ca 17.5 timer vs ca 7 timer ved vintersolhverv
+    const summerDayMs = summerTimes.sunset!.getTime() - summerTimes.sunrise!.getTime();
+    const winterDayMs = winterTimes.sunset!.getTime() - winterTimes.sunrise!.getTime();
+    expect(summerDayMs).toBeGreaterThan(16 * 3600 * 1000);
+    expect(winterDayMs).toBeLessThan(8 * 3600 * 1000);
+
+    // Solhøjde kl. 12 UTC er markant højere om sommeren
+    const summerPos = AstroCore.getSunPosition(summerDate, cphLat, cphLng);
+    const winterPos = AstroCore.getSunPosition(winterDate, cphLat, cphLng);
+    expect(summerPos.altitude).toBeGreaterThan(50);
+    expect(winterPos.altitude).toBeLessThan(15);
+  });
+
+  it('TimeService understøtter ISO-dato formatering og parsing til dato-vælger', () => {
+    const testDate = new Date(2027, 5, 21, 14, 30); // 21. juni 2027
+    const iso = TimeService.formatIsoDate(testDate);
+    expect(iso).toBe('2027-06-21');
+
+    const parsed = TimeService.parseIsoDate('2027-06-21');
+    expect(parsed).not.toBeNull();
+    expect(parsed!.getFullYear()).toBe(2027);
+    expect(parsed!.getMonth()).toBe(5);
+    expect(parsed!.getDate()).toBe(21);
+
+    expect(TimeService.parseIsoDate('ugyldig')).toBeNull();
+    expect(TimeService.parseIsoDate('')).toBeNull();
+  });
+
+  it('TimeService relative dage og planlægningshjælpere fungerer præcist', () => {
+    const base = new Date(2026, 9, 21); // 21. oktober 2026
+
+    const today = new Date(2026, 9, 21);
+    const tomorrow = new Date(2026, 9, 22);
+    const yesterday = new Date(2026, 9, 20);
+    const nextWeek = new Date(2026, 9, 28);
+    const pastDays = new Date(2026, 9, 15);
+
+    expect(TimeService.isToday(today, base)).toBe(true);
+    expect(TimeService.isTomorrow(tomorrow, base)).toBe(true);
+    expect(TimeService.isYesterday(yesterday, base)).toBe(true);
+
+    expect(TimeService.formatRelativeDay(today, base)).toBe('I dag');
+    expect(TimeService.formatRelativeDay(tomorrow, base)).toBe('I morgen');
+    expect(TimeService.formatRelativeDay(nextWeek, base)).toBe('Om 7 dage');
+    expect(TimeService.formatRelativeDay(pastDays, base)).toBe('6 dage siden');
+
+    // Næste solhverv fra 21. oktober 2026
+    const nextWinter = TimeService.getNextSolsticeOrEquinox('winter-solstice', base);
+    expect(nextWinter.getFullYear()).toBe(2026);
+    expect(nextWinter.getMonth()).toBe(11);
+    expect(nextWinter.getDate()).toBe(21);
+
+    const nextSummer = TimeService.getNextSolsticeOrEquinox('summer-solstice', base);
+    expect(nextSummer.getFullYear()).toBe(2027);
+    expect(nextSummer.getMonth()).toBe(5);
+    expect(nextSummer.getDate()).toBe(21);
   });
 });

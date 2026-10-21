@@ -79,4 +79,98 @@ export class TimeService {
     }
     return `${days} dage`;
   }
+
+  public static formatIsoDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  public static parseIsoDate(dateStr: string): Date | null {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const parts = dateStr.trim().split('-');
+    if (parts.length !== 3) return null;
+    const y = Number(parts[0]);
+    const m = Number(parts[1]) - 1;
+    const d = Number(parts[2]);
+    if (isNaN(y) || isNaN(m) || isNaN(d) || y < 1900 || m < 0 || m > 11 || d < 1 || d > 31) return null;
+    return new Date(y, m, d);
+  }
+
+  public static formatDateWithYearDanish(date: Date): string {
+    return `${this.formatDateDanish(date)} ${date.getFullYear()}`;
+  }
+
+  public static isToday(date: Date, referenceDate: Date = new Date()): boolean {
+    return (
+      date.getFullYear() === referenceDate.getFullYear() &&
+      date.getMonth() === referenceDate.getMonth() &&
+      date.getDate() === referenceDate.getDate()
+    );
+  }
+
+  public static isTomorrow(date: Date, referenceDate: Date = new Date()): boolean {
+    const tomorrow = new Date(referenceDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return this.isToday(date, tomorrow);
+  }
+
+  public static isYesterday(date: Date, referenceDate: Date = new Date()): boolean {
+    const yesterday = new Date(referenceDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return this.isToday(date, yesterday);
+  }
+
+  public static getDaysDifference(targetDate: Date, baseDate: Date = new Date()): number {
+    const base = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+    const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const diffMs = target.getTime() - base.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  public static formatRelativeDay(targetDate: Date, baseDate: Date = new Date()): string {
+    const diff = this.getDaysDifference(targetDate, baseDate);
+    if (diff === 0) return 'I dag';
+    if (diff === 1) return 'I morgen';
+    if (diff === 2) return 'I overmorgen';
+    if (diff === -1) return 'I går';
+    if (diff > 0) return `Om ${diff} dage`;
+    return `${Math.abs(diff)} dage siden`;
+  }
+
+  public static getNextSolsticeOrEquinox(
+    type: 'summer-solstice' | 'winter-solstice' | 'spring-equinox' | 'autumn-equinox',
+    fromDate: Date = new Date()
+  ): Date {
+    const year = fromDate.getFullYear();
+    let m = 0;
+    let d = 0;
+    switch (type) {
+      case 'summer-solstice':
+        m = 5;
+        d = 21;
+        break;
+      case 'autumn-equinox':
+        m = 8;
+        d = 22;
+        break;
+      case 'winter-solstice':
+        m = 11;
+        d = 21;
+        break;
+      case 'spring-equinox':
+        m = 2;
+        d = 20;
+        break;
+    }
+
+    const candidateThisYear = new Date(year, m, d);
+    const fromMidnight = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+    if (candidateThisYear.getTime() >= fromMidnight.getTime()) {
+      return candidateThisYear;
+    } else {
+      return new Date(year + 1, m, d);
+    }
+  }
 }

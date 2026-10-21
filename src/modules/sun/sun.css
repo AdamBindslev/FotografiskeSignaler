@@ -106,6 +106,19 @@
   color: var(--text-muted);
   font-weight: 500;
   margin-top: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sun-date-sub:hover {
+  color: var(--accent-sun);
+}
+
+body.theme-night-red .sun-date-sub:hover {
+  color: #ff4d4d;
 }
 
 .sun-phase-badge-wrap {
@@ -211,6 +224,194 @@
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   box-shadow: var(--shadow-sm);
+}
+
+/* DATO-VÆLGER & PLANLÆGNING */
+.sun-planner-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.sun-planner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sun-planner-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.sun-planner-title svg {
+  color: var(--accent-sun);
+}
+
+.sun-date-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sun-day-step-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.sun-day-step-btn:hover {
+  background: var(--bg-surface-elevated);
+  border-color: var(--accent-sun);
+  color: #ffffff;
+}
+
+.sun-day-step-btn:active {
+  transform: scale(0.94);
+}
+
+.sun-date-box {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+.sun-date-box:hover,
+.sun-date-box:focus-within {
+  border-color: var(--accent-sun);
+  background: var(--bg-surface-elevated);
+}
+
+.sun-date-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  color-scheme: dark;
+  font-size: 16px;
+  z-index: 2;
+}
+
+.sun-date-box-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 1;
+  text-align: center;
+}
+
+.sun-date-box-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.sun-date-box-main svg {
+  color: var(--accent-sun);
+  flex-shrink: 0;
+}
+
+.sun-date-box-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.sun-date-presets-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sun-date-presets-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.sun-preset-pill {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sun-preset-pill:hover {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-highlight);
+  color: var(--text-main);
+}
+
+.sun-preset-pill.active {
+  background: var(--accent-sun-glow);
+  border-color: var(--accent-sun);
+  color: var(--accent-sun);
+  font-weight: 700;
+}
+
+.sun-timeline-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-3) 0;
+}
+
+body.theme-night-red .sun-date-box:hover,
+body.theme-night-red .sun-date-box:focus-within,
+body.theme-night-red .sun-day-step-btn:hover {
+  border-color: #ff4d4d;
+}
+
+body.theme-night-red .sun-preset-pill.active {
+  background: rgba(255, 50, 50, 0.25);
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+}
+
+body.theme-night-red .sun-planner-title svg,
+body.theme-night-red .sun-date-box-main svg {
+  color: #ff4d4d;
 }
 
 .timeline-controls-row {
