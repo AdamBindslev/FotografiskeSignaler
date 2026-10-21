@@ -1,5 +1,5 @@
 /**
- * shadow-sim.ts - Grafisk simulationsmotor for FotoSol (§7)
+ * shadow-sim.ts - Grafisk simulationsmotor for Sol (§7)
  * Renderes på HTML5 Canvas med Retina-understøttelse og aktiv pause.
  */
 

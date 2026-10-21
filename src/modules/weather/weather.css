@@ -1,5 +1,5 @@
 /**
- * weather.css - FotoVejr modul styling
+ * weather.css - Vejr modul styling
  */
 
 .weather-container {
@@ -186,6 +186,7 @@
   padding-top: 8px;
 }
 
+.btn-goto-sol,
 .btn-goto-fotosol {
   display: inline-flex;
   align-items: center;
@@ -201,6 +202,7 @@
   transition: all 0.15s ease;
 }
 
+.btn-goto-sol:hover, .btn-goto-sol:active,
 .btn-goto-fotosol:hover, .btn-goto-fotosol:active {
   background: var(--accent-sun);
   color: #07080a;

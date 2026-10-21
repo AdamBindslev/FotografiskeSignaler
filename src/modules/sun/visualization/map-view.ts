@@ -1,5 +1,5 @@
 /**
- * map-view.ts - Leaflet kortvisning med on-demand lazy loading for FotoSol (§7.2, §7.4)
+ * map-view.ts - Leaflet kortvisning med on-demand lazy loading for Sol (§7.2, §7.4)
  * Viser solens indfaldsvinkel, skyggens retning og længde direkte på kortet i harmoni med kompasvisningen.
  */
 

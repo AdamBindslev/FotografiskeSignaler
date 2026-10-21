@@ -104,7 +104,7 @@ export default class HomeModule implements ModuleInstance {
             : ''
         }
 
-        <!-- MODUL 1: FOTOVEJR -->
+        <!-- MODUL 1: VEJR -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-weather); cursor: pointer;" id="cardGoWeather">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -114,7 +114,7 @@ export default class HomeModule implements ModuleInstance {
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">FotoVejr</h2>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Vejr</h2>
                 <span style="font-size: 11px; color: var(--accent-weather); font-weight: 600; text-transform: uppercase;">Atmosfære & Fotovinduer</span>
               </div>
             </div>
@@ -125,11 +125,11 @@ export default class HomeModule implements ModuleInstance {
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Solopgang: ${TimeService.formatTime(sunTimes.sunrise)} • Solnedgang: ${TimeService.formatTime(sunTimes.sunset)}</span>
-            <span style="color: var(--accent-weather); font-weight: 600;">Åbn FotoVejr →</span>
+            <span style="color: var(--accent-weather); font-weight: 600;">Åbn Vejr →</span>
           </div>
         </div>
 
-        <!-- MODUL 2: FOTOSOL -->
+        <!-- MODUL 2: SOL -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-sun); cursor: pointer;" id="cardGoSun">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -145,7 +145,7 @@ export default class HomeModule implements ModuleInstance {
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">FotoSol</h2>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Sol</h2>
                 <span style="font-size: 11px; color: var(--accent-sun); font-weight: 600; text-transform: uppercase;">Sol, Skygge & Lysretning</span>
               </div>
             </div>
@@ -156,11 +156,11 @@ export default class HomeModule implements ModuleInstance {
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Aktuel retning: ${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}</span>
-            <span style="color: var(--accent-sun); font-weight: 600;">Åbn FotoSol →</span>
+            <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol →</span>
           </div>
         </div>
 
-        <!-- MODUL 3: FOTODOF -->
+        <!-- MODUL 3: DOF -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-dof); cursor: pointer;" id="cardGoDof">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -173,7 +173,7 @@ export default class HomeModule implements ModuleInstance {
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">FotoDOF</h2>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">DOF</h2>
                 <span style="font-size: 11px; color: var(--accent-dof); font-weight: 600; text-transform: uppercase;">Optik, Fokus & Bokeh</span>
               </div>
             </div>
@@ -184,7 +184,7 @@ export default class HomeModule implements ModuleInstance {
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Understøtter Mellemformat, Full Frame, APS-C, MFT & Mobil</span>
-            <span style="color: var(--accent-dof); font-weight: 600;">Åbn FotoDOF →</span>
+            <span style="color: var(--accent-dof); font-weight: 600;">Åbn DOF →</span>
           </div>
         </div>
 
@@ -211,29 +211,29 @@ export default class HomeModule implements ModuleInstance {
   private attachEventListeners(): void {
     // Navigation til moduler
     this.container.querySelector('#cardGoWeather')?.addEventListener('click', () => {
-      Router.navigate('#/fotovejr');
+      Router.navigate('#/vejr');
     });
 
     this.container.querySelector('#cardGoSun')?.addEventListener('click', () => {
-      Router.navigate('#/fotosol');
+      Router.navigate('#/sol');
     });
 
     this.container.querySelector('#cardGoDof')?.addEventListener('click', () => {
-      Router.navigate('#/fotodof');
+      Router.navigate('#/dof');
     });
 
     this.container.querySelector('#btnResumeLast')?.addEventListener('click', () => {
       const settings = StorageService.getSettings();
-      if (settings.lastModule === 'weather') Router.navigate('#/fotovejr');
-      else if (settings.lastModule === 'sun') Router.navigate('#/fotosol');
-      else if (settings.lastModule === 'dof') Router.navigate('#/fotodof');
+      if (settings.lastModule === 'weather') Router.navigate('#/vejr');
+      else if (settings.lastModule === 'sun') Router.navigate('#/sol');
+      else if (settings.lastModule === 'dof') Router.navigate('#/dof');
     });
   }
 
   private getModuleName(id: string): string {
-    if (id === 'weather') return 'FotoVejr';
-    if (id === 'sun') return 'FotoSol';
-    if (id === 'dof') return 'FotoDOF';
+    if (id === 'weather') return 'Vejr';
+    if (id === 'sun') return 'Sol';
+    if (id === 'dof') return 'DOF';
     return id;
   }
 }

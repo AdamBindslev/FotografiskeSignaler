@@ -1,4 +1,4 @@
-import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as g}from"./LocationBar-DDjrBrVz.js";class x{container;currentLocation=s.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=s.getLocation(),this.render(),this.unsubLocation=s.subscribe(i=>{this.currentLocation=i,this.render()})}onActivate(){this.currentLocation=s.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}render(){const e=p.getSettings(),i=new Date,t=n.getSunPosition(i,this.currentLocation.lat,this.currentLocation.lng),a=n.getSunTimes(i,this.currentLocation.lat,this.currentLocation.lng),l=n.getLightPhase(t.altitude),c=e.lastModule!=="home"?e.lastModule:null;this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
+import{S as p,R as n}from"./index-DfH0Uoso.js";import{L as s,A as i,T as r,a as g}from"./LocationBar-DDjrBrVz.js";class x{container;currentLocation=s.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=s.getLocation(),this.render(),this.unsubLocation=s.subscribe(o=>{this.currentLocation=o,this.render()})}onActivate(){this.currentLocation=s.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}render(){const e=p.getSettings(),o=new Date,t=i.getSunPosition(o,this.currentLocation.lat,this.currentLocation.lng),a=i.getSunTimes(o,this.currentLocation.lat,this.currentLocation.lng),l=i.getLightPhase(t.altitude),c=e.lastModule!=="home"?e.lastModule:null;this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
         <!-- VELKOMST HERO -->
         <div class="fs-card" style="padding: var(--space-5); text-align: center; border-color: var(--border-highlight); background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(15, 18, 23, 0.9) 100%);">
@@ -16,7 +16,7 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
           <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 12px; flex-wrap: wrap;">
             <span style="color: ${l.color}; font-weight: 700;">● ${l.name}</span>
             <span>•</span>
-            <span>Sol ${t.altitude>=0?"+":""}${t.altitude.toFixed(0)}° (${t.azimuth.toFixed(0)}° ${n.getCompassDirection(t.azimuth)})</span>
+            <span>Sol ${t.altitude>=0?"+":""}${t.altitude.toFixed(0)}° (${t.azimuth.toFixed(0)}° ${i.getCompassDirection(t.azimuth)})</span>
             <span>•</span>
             <span>Solnedgang: ${r.formatTime(a.sunset)}</span>
           </div>
@@ -42,7 +42,7 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
           </div>
         `:""}
 
-        <!-- MODUL 1: FOTOVEJR -->
+        <!-- MODUL 1: VEJR -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-weather); cursor: pointer;" id="cardGoWeather">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -52,7 +52,7 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">FotoVejr</h2>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Vejr</h2>
                 <span style="font-size: 11px; color: var(--accent-weather); font-weight: 600; text-transform: uppercase;">Atmosfære & Fotovinduer</span>
               </div>
             </div>
@@ -63,11 +63,11 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Solopgang: ${r.formatTime(a.sunrise)} • Solnedgang: ${r.formatTime(a.sunset)}</span>
-            <span style="color: var(--accent-weather); font-weight: 600;">Åbn FotoVejr →</span>
+            <span style="color: var(--accent-weather); font-weight: 600;">Åbn Vejr →</span>
           </div>
         </div>
 
-        <!-- MODUL 2: FOTOSOL -->
+        <!-- MODUL 2: SOL -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-sun); cursor: pointer;" id="cardGoSun">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -83,7 +83,7 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">FotoSol</h2>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Sol</h2>
                 <span style="font-size: 11px; color: var(--accent-sun); font-weight: 600; text-transform: uppercase;">Sol, Skygge & Lysretning</span>
               </div>
             </div>
@@ -93,12 +93,12 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
             Interaktiv 3D-søger og satellitkort for ${this.currentLocation.name}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Aktuel retning: ${t.azimuth.toFixed(0)}° ${n.getCompassDirection(t.azimuth)}</span>
-            <span style="color: var(--accent-sun); font-weight: 600;">Åbn FotoSol →</span>
+            <span>Aktuel retning: ${t.azimuth.toFixed(0)}° ${i.getCompassDirection(t.azimuth)}</span>
+            <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol →</span>
           </div>
         </div>
 
-        <!-- MODUL 3: FOTODOF -->
+        <!-- MODUL 3: DOF -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-dof); cursor: pointer;" id="cardGoDof">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -111,7 +111,7 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">FotoDOF</h2>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">DOF</h2>
                 <span style="font-size: 11px; color: var(--accent-dof); font-weight: 600; text-transform: uppercase;">Optik, Fokus & Bokeh</span>
               </div>
             </div>
@@ -122,7 +122,7 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Understøtter Mellemformat, Full Frame, APS-C, MFT & Mobil</span>
-            <span style="color: var(--accent-dof); font-weight: 600;">Åbn FotoDOF →</span>
+            <span style="color: var(--accent-dof); font-weight: 600;">Åbn DOF →</span>
           </div>
         </div>
 
@@ -132,4 +132,4 @@ import{S as p,R as o}from"./index-Dx0AUg-B.js";import{L as s,A as n,T as r,a as 
           Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
         </div>
       </div>
-    `;const d=this.container.querySelector("#homeLocationMount");d&&(this.locationBar=new g({container:d,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{o.navigate("#/fotovejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{o.navigate("#/fotosol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{o.navigate("#/fotodof")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=p.getSettings();e.lastModule==="weather"?o.navigate("#/fotovejr"):e.lastModule==="sun"?o.navigate("#/fotosol"):e.lastModule==="dof"&&o.navigate("#/fotodof")})}getModuleName(e){return e==="weather"?"FotoVejr":e==="sun"?"FotoSol":e==="dof"?"FotoDOF":e}}export{x as default};
+    `;const d=this.container.querySelector("#homeLocationMount");d&&(this.locationBar=new g({container:d,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{n.navigate("#/vejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{n.navigate("#/sol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{n.navigate("#/dof")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=p.getSettings();e.lastModule==="weather"?n.navigate("#/vejr"):e.lastModule==="sun"?n.navigate("#/sol"):e.lastModule==="dof"&&n.navigate("#/dof")})}getModuleName(e){return e==="weather"?"Vejr":e==="sun"?"Sol":e==="dof"?"DOF":e}}export{x as default};

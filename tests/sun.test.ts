@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { AstroCore } from '../src/shared/astronomy/AstroCore.ts';
 
-describe('AstroCore - FotoSol beregninger', () => {
+describe('AstroCore - Sol beregninger', () => {
   const cphLat = 55.6761;
   const cphLng = 12.5683;
 

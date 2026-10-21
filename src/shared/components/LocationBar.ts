@@ -1,5 +1,5 @@
 /**
- * LocationBar.ts - Fælles, ensartet lokationskomponent for Hjem, FotoVejr og FotoSol (§4.2, §9.1)
+ * LocationBar.ts - Fælles, ensartet lokationskomponent for Hjem, Vejr og Sol (§4.2, §9.1)
  * Indeholder lokationsvisning, GPS-knap, adresse- og stedsøgning (Photon OSM + Open-Meteo),
  * samt oprettelse, valg og administration af brugerens egne gemte fotospots.
  */

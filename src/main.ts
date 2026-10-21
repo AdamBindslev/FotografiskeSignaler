@@ -33,11 +33,12 @@ ModuleRegistry.register({
 
 ModuleRegistry.register({
   id: 'weather',
-  name: 'FotoVejr',
-  shortName: 'FotoVejr',
+  name: 'Vejr',
+  shortName: 'Vejr',
   description: 'Vejranalyse og fotovinduer',
   accentColor: '#38bdf8',
-  route: '#/fotovejr',
+  route: '#/vejr',
+  aliases: ['#/fotovejr'],
   iconSvg: `
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
       <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
@@ -51,11 +52,12 @@ ModuleRegistry.register({
 
 ModuleRegistry.register({
   id: 'sun',
-  name: 'FotoSol',
-  shortName: 'FotoSol',
+  name: 'Sol',
+  shortName: 'Sol',
   description: 'Sol, skygge og lysretning',
   accentColor: '#f59e0b',
-  route: '#/fotosol',
+  route: '#/sol',
+  aliases: ['#/fotosol'],
   iconSvg: `
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
       <circle cx="12" cy="12" r="5"></circle>
@@ -75,11 +77,12 @@ ModuleRegistry.register({
 
 ModuleRegistry.register({
   id: 'dof',
-  name: 'FotoDOF',
-  shortName: 'FotoDOF',
+  name: 'DOF',
+  shortName: 'DOF',
   description: 'Dybdeskarphed og optik',
   accentColor: '#10b981',
-  route: '#/fotodof',
+  route: '#/dof',
+  aliases: ['#/fotodof'],
   iconSvg: `
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
       <circle cx="12" cy="12" r="10"></circle>

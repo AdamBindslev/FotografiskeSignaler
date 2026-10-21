@@ -25,15 +25,15 @@
   --fs-silver-dark: #8e9499;
 
   /* Modul-specifikke accentfarver (§5.2) */
-  --accent-weather: #38bdf8;         /* FotoVejr: Kølig blå/cyan */
+  --accent-weather: #38bdf8;         /* Vejr: Kølig blå/cyan */
   --accent-weather-glow: rgba(56, 189, 248, 0.22);
   --accent-weather-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
 
-  --accent-sun: #f59e0b;             /* FotoSol: Varm gylden/orange */
+  --accent-sun: #f59e0b;             /* Sol: Varm gylden/orange */
   --accent-sun-glow: rgba(245, 158, 11, 0.22);
   --accent-sun-gradient: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
 
-  --accent-dof: #10b981;             /* FotoDOF: Dæmpet grøn */
+  --accent-dof: #10b981;             /* DOF: Dæmpet grøn */
   --accent-dof-glow: rgba(16, 185, 129, 0.22);
   --accent-dof-gradient: linear-gradient(135deg, #34d399 0%, #059669 100%);
 

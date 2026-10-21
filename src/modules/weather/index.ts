@@ -1,5 +1,5 @@
 /**
- * index.ts - FotoVejr modul controller (§6)
+ * index.ts - Vejr modul controller (§6)
  */
 
 import { ModuleInstance } from '../../app/ModuleRegistry.ts';
@@ -71,7 +71,7 @@ export default class WeatherModule implements ModuleInstance {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
             </svg>
-            <span>FotoVejr • Vejranalyse</span>
+            <span>Vejr • Vejranalyse</span>
           </div>
           <button class="fs-btn" id="btnWeatherRefresh" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">
             Opdater vejr
@@ -294,10 +294,10 @@ export default class WeatherModule implements ModuleInstance {
       dayBannerTitle = `I morgen (${day.dayName.toLowerCase()} d. ${day.date.getDate()}. ${monthNames[day.date.getMonth()]})`;
       const mEarliest = sun.blueHourMorning?.start || sun.sunrise;
       const untilMorn = mEarliest ? Math.max(0, mEarliest.getTime() - now.getTime()) : 0;
-      dayBannerSubtitle = `Første fotomulighed: Daggry kl. ${TimeService.formatTime(mEarliest)} (om ${TimeService.formatDuration(untilMorn)}) • Fotovejrudsigt for i morgen`;
+      dayBannerSubtitle = `Første fotomulighed: Daggry kl. ${TimeService.formatTime(mEarliest)} (om ${TimeService.formatDuration(untilMorn)}) • Vejrudsigt for i morgen`;
     } else {
       dayBannerTitle = `${day.dayName} d. ${day.date.getDate()}. ${monthNames[day.date.getMonth()]}`;
-      dayBannerSubtitle = `7-dages fotovejrudsigt for ${this.currentLocation.name}`;
+      dayBannerSubtitle = `7-dages vejrudsigt for ${this.currentLocation.name}`;
     }
 
     const getScoreClass = (score: number) => {
@@ -445,8 +445,8 @@ export default class WeatherModule implements ModuleInstance {
           ${renderPassedJump(morningTiming.isPassed, 'Morgenens gyldne time fandt sted i morges. Tjek i morgen?', 'Se daggry i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Skyer: ${morning.clouds.total}% (Lav: ${morning.clouds.low}%, Mellem: ${morning.clouds.mid}%, Høj: ${morning.clouds.high}%)</span>
-            <button class="btn-goto-fotosol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}">
-              Se lysretning i FotoSol →
+            <button class="btn-goto-sol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}">
+              Se lysretning i Sol →
             </button>
           </div>
         </div>
@@ -466,8 +466,8 @@ export default class WeatherModule implements ModuleInstance {
           ${renderPassedJump(eveningTiming.isPassed, 'Aftenens solnedgang fandt sted tidligere i aften. Tjek i morgen?', 'Se solnedgang i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Skyer: ${evening.clouds.total}% (Lav: ${evening.clouds.low}%, Mellem: ${evening.clouds.mid}%, Høj: ${evening.clouds.high}%)</span>
-            <button class="btn-goto-fotosol" data-time="${sun.sunset ? sun.sunset.getTime() : day.date.getTime()}">
-              Se lysretning i FotoSol →
+            <button class="btn-goto-sol" data-time="${sun.sunset ? sun.sunset.getTime() : day.date.getTime()}">
+              Se lysretning i Sol →
             </button>
           </div>
         </div>
@@ -539,13 +539,13 @@ export default class WeatherModule implements ModuleInstance {
       });
     });
 
-    // Handlingsknap: "Se lysretning i FotoSol"
-    wrap.querySelectorAll('.btn-goto-fotosol').forEach((btn) => {
+    // Handlingsknap: "Se lysretning i Sol"
+    wrap.querySelectorAll('.btn-goto-sol, .btn-goto-fotosol').forEach((btn) => {
       btn.addEventListener('click', () => {
         const timeMs = Number((btn as HTMLElement).dataset.time);
         const targetDate = new Date(timeMs);
         TimeService.setDate(targetDate);
-        Router.navigate('#/fotosol', {
+        Router.navigate('#/sol', {
           date: targetDate,
           lat: this.currentLocation.lat,
           lng: this.currentLocation.lng,

@@ -1,6 +1,6 @@
 /**
  * dof-engine.ts - Optisk præcisionsberegner for dybdeskarphed
- * Fotografiske Signaler FotoDOF modul (§8)
+ * Fotografiske Signaler DOF modul (§8)
  */
 
 export interface SensorPreset {

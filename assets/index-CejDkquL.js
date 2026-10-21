@@ -104,7 +104,7 @@ const N={medium_format:{id:"medium_format",name:"Mellemformat (44×33mm)",shortN
               <line x1="12" y1="2" x2="12" y2="4"></line>
               <line x1="12" y1="20" x2="12" y2="22"></line>
             </svg>
-            <span>FotoDOF • Optisk Simulator</span>
+            <span>DOF • Optisk Simulator</span>
           </div>
           <span class="fs-badge badge-dof" id="dofSensorBadge">Full Frame [1.0×]</span>
         </div>

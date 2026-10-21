@@ -1,6 +1,6 @@
 /**
  * AstroCore.ts - Fælles astronomisk beregningskerne for Fotografiske Signaler
- * Forener sol-, måne-, tusmørke- og skyggeberegninger til FotoVejr og FotoSol.
+ * Forener sol-, måne-, tusmørke- og skyggeberegninger til Vejr og Sol.
  * Kører 100% offline uden eksterne afhængigheder.
  */
 

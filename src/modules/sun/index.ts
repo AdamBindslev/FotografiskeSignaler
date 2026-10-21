@@ -1,5 +1,5 @@
 /**
- * index.ts - FotoSol modul controller (§7)
+ * index.ts - Sol modul controller (§7)
  */
 
 import { ModuleInstance } from '../../app/ModuleRegistry.ts';
@@ -53,7 +53,7 @@ export default class SunModule implements ModuleInstance {
   public onActivate(context?: any): void {
     this.simulator?.resume();
 
-    // Håndter kontekst fra f.eks. FotoVejr ("Se lysretning i FotoSol")
+    // Håndter kontekst fra f.eks. Vejr ("Se lysretning i Sol")
     if (context?.date) {
       this.currentDate = new Date(context.date);
     }
@@ -123,7 +123,7 @@ export default class SunModule implements ModuleInstance {
               <line x1="1" y1="12" x2="3" y2="12"></line>
               <line x1="21" y1="12" x2="23" y2="12"></line>
             </svg>
-            <span>FotoSol • Sol & Skygge</span>
+            <span>Sol • Sol & Skygge</span>
           </div>
           <span class="fs-badge badge-sun" id="sunPhaseHeaderBadge">Gylden time</span>
         </div>

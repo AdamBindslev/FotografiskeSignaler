@@ -6,9 +6,9 @@
 
 Fotografiske Signaler forener tre specialiserede fotografiske værktøjer i én samlet, moderne og installerbar Progressive Web App:
 
-1. **FotoVejr** – Fotografisk vejranalyse med 7-døgns prognoser fra Open-Meteo, morgentåge- og dis-vurdering, gylden time-kvalitet, stjerneklar natsky-score, sol- og månefaser samt time-for-time vejrdata.
-2. **FotoSol** – Solposition, skyggeberegning og kompositionsplanlægning med interaktiv roterbar 3D-søger (HTML5 Canvas Retina), 2D solurs-kompas og on-demand satellitkort (Leaflet).
-3. **FotoDOF** – Fysisk dybdeskarphedsberegner med hyperfokaldistance, nær-/fjerngrænser, fordeling foran/bagved, sensor Circle of Confusion (CoC), diffraktionsanalyse samt simuleret EVF (Electronic Viewfinder) med realistisk baggrundssløring og bokeh-bobler.
+1. **Vejr** – Vejranalyse med 7-døgns prognoser fra Open-Meteo, morgentåge- og dis-vurdering, gylden time-kvalitet, stjerneklar natsky-score, sol- og månefaser samt time-for-time vejrdata.
+2. **Sol** – Solposition, skyggeberegning og kompositionsplanlægning med interaktiv roterbar 3D-søger (HTML5 Canvas Retina), 2D solurs-kompas og on-demand satellitkort (Leaflet).
+3. **DOF** – Fysisk dybdeskarphedsberegner med hyperfokaldistance, nær-/fjerngrænser, fordeling foran/bagved, sensor Circle of Confusion (CoC), diffraktionsanalyse samt simuleret EVF (Electronic Viewfinder) med realistisk baggrundssløring og bokeh-bobler.
 
 ---
 
@@ -16,10 +16,10 @@ Fotografiske Signaler forener tre specialiserede fotografiske værktøjer i én 
 
 - **Én samlet PWA:** Installérbar på iOS Safari og Android Chrome via ét appikon.
 - **Fuld Astro Rød Nattilstand:** Global nattilstand aktiveres med ét tryk i topbjælken og skåner fotografens nattesyn i felten (gælder både UI, canvas-scener og kontroller).
-- **Fælles Lokation & Tidsmodel:** Automatisk to-vejs synkronisering af lokation mellem FotoVejr og FotoSol. FotoVejr indeholder direkte *"Se lysretning i FotoSol"*-handlinger på alle fotovinduer.
+- **Fælles Lokation & Tidsmodel:** Automatisk to-vejs synkronisering af lokation mellem Vejr og Sol. Vejr indeholder direkte *"Se lysretning i Sol"*-handlinger på alle fotovinduer.
 - **Ekstrem Mobil Ydeevne:** Bygget med Vite, TypeScript og moderne Vanilla ES-moduler. 0 kB framework-overhead, sub-50ms opstart og lazy-loading af moduler og tunge biblioteker (Leaflet hentes kun ved faktisk brug).
 - **Aktiv pause af rendering:** Moduler pauser automatisk animationer, 60fps canvas-rendering og GPS-watching, når fotografen skifter fane (0% CPU/GPU-spild i baggrunden, samtidig med at kameravinkler og inputfelter bevares 100%).
-- **100% Offline Understøttelse:** FotoDOF kører fuldstændig offline. FotoSol foretager alle sol- og skyggeberegninger offline. FotoVejr bevarer lokale astronomiske beregninger og viser senest cachede vejrudsigt med tydeligt tidsstempel ved manglende forbindelse.
+- **100% Offline Understøttelse:** DOF kører fuldstændig offline. Sol foretager alle sol- og skyggeberegninger offline. Vejr bevarer lokale astronomiske beregninger og viser senest cachede vejrudsigt med tydeligt tidsstempel ved manglende forbindelse.
 - **Diskret Opdateringsnotifikation:** Service Worker meddeler fotografen roligt med et toast-banner, når en ny version er klar, så igangværende beregninger i felten aldrig afbrydes vilkårligt.
 
 ---
@@ -51,9 +51,9 @@ FotografiskeSignaler/
 │   │       └── AstroCore.ts    # Fælles sol-, måne-, tusmørke- og skyggematematik
 │   ├── modules/
 │   │   ├── home/               # Hjemmeskærm med modul-oversigt og status
-│   │   ├── weather/            # FotoVejr modul
-│   │   ├── sun/                # FotoSol modul
-│   │   └── dof/                # FotoDOF modul
+│   │   ├── weather/            # Vejr modul
+│   │   ├── sun/                # Sol modul
+│   │   └── dof/                # DOF modul
 │   └── main.ts                 # App bootstrap og Service Worker registrering
 ├── tests/
 │   ├── dof.test.ts             # Tests for optiske DOF formler og formatering
@@ -99,7 +99,7 @@ De optimerede, hash-versionerede filer, service worker og manifest placeres i ma
 
 ## 🚀 Deployment til GitHub Pages
 
-Projektet er konfigureret med relativ base (`./`) og hash-baseret routing (`#/`, `#/fotovejr`, `#/fotosol`, `#/fotodof`), hvilket garanterer, at appen fungerer out-of-the-box på GitHub Pages uden behov for 404-fallback hacks.
+Projektet er konfigureret med relativ base (`./`) og hash-baseret routing (`#/`, `#/vejr`, `#/sol`, `#/dof`), hvilket garanterer, at appen fungerer out-of-the-box på GitHub Pages uden behov for 404-fallback hacks. Bagudkompatible rute-aliasser (`#/fotovejr`, `#/fotosol`, `#/fotodof`) understøttes automatisk.
 
 Byg distributionsfilerne:
 ```bash
@@ -111,7 +111,7 @@ Deploy indholdet af mappen `dist/` til GitHub Pages (f.eks. via GitHub Actions e
 
 ## 🧩 Sådan tilføjes et nyt værktøj (Moduludvidelse)
 
-Arkitekturen opfylder kravspecifikationens §10.4 og §16 om fremtidssikring. Et nyt værktøj (f.eks. **FotoMåne**, **FotoStjerner**, **FotoEksponering** eller **FotoFOV**) kan tilføjes uden at ændre eksisterende moduler:
+Arkitekturen opfylder kravspecifikationens §10.4 og §16 om fremtidssikring. Et nyt værktøj (f.eks. **Måne**, **Stjerner**, **Eksponering** eller **FOV**) kan tilføjes uden at ændre eksisterende moduler:
 
 1. Opret modulets mappe i `src/modules/<nyt-modul>/`:
    - Implementér controller-klassen med interface `ModuleInstance` (`mount`, `onActivate`, `onDeactivate`).
@@ -119,8 +119,8 @@ Arkitekturen opfylder kravspecifikationens §10.4 og §16 om fremtidssikring. Et
    ```typescript
    ModuleRegistry.register({
      id: 'nyt-modul',
-     name: 'FotoNavn',
-     shortName: 'Navn',
+     name: 'Måne',
+     shortName: 'Måne',
      description: 'Kort beskrivelse',
      accentColor: '#var-farve',
      route: '#/nyt-modul',
