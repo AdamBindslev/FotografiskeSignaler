@@ -20,6 +20,7 @@ dist-ssr
 
 # Reference repos
 reference/
+*.zip
 
 # Logs
 npm-debug.log*
