@@ -4,25 +4,17 @@
 
 import { ModuleInstance } from '../../app/ModuleRegistry.ts';
 import { Router } from '../../app/Router.ts';
-import { LocationService, GeoLocation } from '../../shared/services/LocationService.ts';
+import { LocationService, GeoLocation, PhotoSpot } from '../../shared/services/LocationService.ts';
 import { TimeService } from '../../shared/services/TimeService.ts';
 import { StorageService } from '../../shared/services/StorageService.ts';
 import { AstroCore } from '../../shared/astronomy/AstroCore.ts';
-
-const POPULAR_SPOTS = [
-  { name: 'Møns Klint', sub: 'Kridtskrænter & Mælkevejen', lat: 54.9667, lng: 12.5500 },
-  { name: 'Skagen Grenen', sub: 'Solnedgang & to have', lat: 57.7441, lng: 10.6478 },
-  { name: 'Rubjerg Knude', sub: 'Sandklit & Fyr', lat: 57.4497, lng: 9.7739 },
-  { name: 'Hammershus, Bornholm', sub: 'Klippekyst & Borgruin', lat: 55.2728, lng: 14.7544 },
-  { name: 'Vadehavet, Rømø', sub: 'Sort Sol & uendelig horisont', lat: 55.1389, lng: 8.5417 },
-  { name: 'København Havn', sub: 'Nyhavn & Byarkitektur', lat: 55.6795, lng: 12.5910 }
-];
 
 export default class HomeModule implements ModuleInstance {
   private container!: HTMLElement;
   private currentLocation: GeoLocation = LocationService.getLocation();
   private unsubLocation: (() => void) | null = null;
   private searchOpen: boolean = false;
+  private showSaveInput: boolean = false;
 
   public mount(container: HTMLElement): void {
     this.container = container;
@@ -56,6 +48,7 @@ export default class HomeModule implements ModuleInstance {
     const sunTimes = AstroCore.getSunTimes(now, this.currentLocation.lat, this.currentLocation.lng);
     const lightPhase = AstroCore.getLightPhase(sunPos.altitude);
     const lastMod = settings.lastModule !== 'home' ? settings.lastModule : null;
+    const savedSpots: PhotoSpot[] = LocationService.getSavedSpots();
 
     this.container.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
@@ -100,22 +93,70 @@ export default class HomeModule implements ModuleInstance {
           </div>
         </div>
 
-        <!-- SØGEPANEL MED FORSLAG OG POPULÆRE FOTOSPOTS -->
+        <!-- SØGEPANEL & GEMTE FOTOSPOTS -->
         <div id="homeSearchDropdown" class="fs-card" style="display: ${this.searchOpen ? 'block' : 'none'}; margin-bottom: 0;">
-          <input type="text" id="homeSearchInput" placeholder="Søg by, postnr eller naturområde..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
-          <div id="homeSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
-          
-          <!-- Populære fotospots genveje -->
-          <div style="margin-top: 12px; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Populære Fotospots i Danmark:</span>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-              ${POPULAR_SPOTS.map(
-                (spot) => `
-                <button class="quick-val-btn" data-spot-lat="${spot.lat}" data-spot-lng="${spot.lng}" data-spot-name="${spot.name}" style="padding: 5px 9px; font-size: 11px;">
-                  📍 ${spot.name}
-                </button>
+          <!-- Søgefelt -->
+          <div style="margin-bottom: 12px;">
+            <input type="text" id="homeSearchInput" placeholder="Søg by, postnr eller naturområde i Danmark..." style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
+            <div id="homeSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
+          </div>
+
+          <!-- Gem aktuel position som nyt spot -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; margin-bottom: 12px;">
+            ${
+              this.showSaveInput
+                ? `
+              <div style="display: flex; flex-direction: column; gap: 8px; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-sun);">
+                <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Navngiv fotospot:</label>
+                <input type="text" id="inputSpotName" value="${this.currentLocation.name}" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--border-highlight); background: var(--bg-surface-elevated); color: var(--text-main); font-size: 13px;">
+                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                  <button class="fs-btn" id="btnCancelSaveSpot" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">Annuller</button>
+                  <button class="fs-btn fs-btn-accent-sun" id="btnConfirmSaveSpot" style="padding: 4px 12px; font-size: 11px; min-height: 28px;">Gem spot</button>
+                </div>
+              </div>
+            `
+                : `
+              <button class="fs-btn" id="btnTriggerSaveSpot" style="width: 100%; justify-content: center; gap: 6px; background: var(--bg-surface-elevated); border: 1px dashed var(--accent-sun); color: var(--accent-sun); font-size: 12px; min-height: 36px;">
+                ⭐ Gem aktuel lokation som fotospot
+              </button>
+            `
+            }
+          </div>
+
+          <!-- Dine gemte fotospots liste -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;">Dine Gemte Fotospots (${savedSpots.length}):</span>
+            </div>
+
+            <div id="homeSavedSpotsList" style="display: flex; flex-direction: column; gap: 6px;">
+              ${
+                savedSpots.length === 0
+                  ? `
+                <div style="font-size: 12px; color: var(--text-dim); text-align: center; padding: 12px 6px; line-height: 1.4;">
+                  Ingen gemte fotospots endnu.<br>Tryk på <em>"Gem aktuel lokation"</em> herover for at tilføje dit første spot.
+                </div>
               `
-              ).join('')}
+                  : savedSpots
+                      .map(
+                        (spot) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-elevated); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); transition: border-color 0.15s ease;">
+                  <div style="cursor: pointer; flex: 1; overflow: hidden;" data-select-spot="${spot.id}">
+                    <strong style="color: var(--text-main); font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${spot.name}</strong>
+                    <span style="color: var(--text-muted); font-size: 11px; font-family: var(--font-mono);">${spot.lat.toFixed(4)}°N, ${spot.lng.toFixed(4)}°Ø</span>
+                  </div>
+                  <button class="fs-btn-icon" data-delete-spot="${spot.id}" title="Slet spot" style="width: 28px; height: 28px; border: none; color: var(--text-dim); background: transparent; cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 6h18"></path>
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              `
+                      )
+                      .join('')
+              }
             </div>
           </div>
         </div>
@@ -276,6 +317,64 @@ export default class HomeModule implements ModuleInstance {
       }
     });
 
+    // Gem aktuel position trigger
+    this.container.querySelector('#btnTriggerSaveSpot')?.addEventListener('click', () => {
+      this.showSaveInput = true;
+      this.render();
+      this.attachEventListeners();
+      const input = this.container.querySelector('#inputSpotName') as HTMLInputElement;
+      input?.focus();
+      input?.select();
+    });
+
+    this.container.querySelector('#btnCancelSaveSpot')?.addEventListener('click', () => {
+      this.showSaveInput = false;
+      this.render();
+      this.attachEventListeners();
+    });
+
+    this.container.querySelector('#btnConfirmSaveSpot')?.addEventListener('click', () => {
+      const input = this.container.querySelector('#inputSpotName') as HTMLInputElement;
+      const spotName = input?.value || this.currentLocation.name;
+      LocationService.saveSpot(spotName, this.currentLocation.lat, this.currentLocation.lng);
+      this.showSaveInput = false;
+      this.render();
+      this.attachEventListeners();
+    });
+
+    // Vælg et gemt spot
+    this.container.querySelectorAll('[data-select-spot]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const spotId = (btn as HTMLElement).dataset.selectSpot;
+        const spots = LocationService.getSavedSpots();
+        const spot = spots.find((s) => s.id === spotId);
+        if (spot) {
+          this.currentLocation = LocationService.setLocation({
+            lat: spot.lat,
+            lng: spot.lng,
+            name: spot.name,
+            source: 'search'
+          });
+          this.searchOpen = false;
+          this.render();
+          this.attachEventListeners();
+        }
+      });
+    });
+
+    // Slet et gemt spot
+    this.container.querySelectorAll('[data-delete-spot]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const spotId = (btn as HTMLElement).dataset.deleteSpot;
+        if (spotId && confirm('Vil du fjerne dette gemte fotospot?')) {
+          LocationService.deleteSpot(spotId);
+          this.render();
+          this.attachEventListeners();
+        }
+      });
+    });
+
     // Søgning efter byer/steder med debounce
     let searchTimer: any = null;
     searchInput?.addEventListener('input', () => {
@@ -310,20 +409,6 @@ export default class HomeModule implements ModuleInstance {
           });
         });
       }, 300);
-    });
-
-    // Populære fotospots klik
-    this.container.querySelectorAll('[data-spot-lat]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const target = btn as HTMLElement;
-        const lat = Number(target.dataset.spotLat);
-        const lng = Number(target.dataset.spotLng);
-        const name = target.dataset.spotName || 'Fotospot';
-        this.currentLocation = LocationService.setLocation({ lat, lng, name, source: 'search' });
-        this.searchOpen = false;
-        this.render();
-        this.attachEventListeners();
-      });
     });
   }
 

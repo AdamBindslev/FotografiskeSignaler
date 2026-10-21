@@ -3,6 +3,14 @@
  * Understøtter browser-GPS, Open-Meteo geocoding og reverse geocoding, samt fallback.
  */
 
+export interface PhotoSpot {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  createdAt: number;
+}
+
 export interface GeoLocation {
   lat: number;
   lng: number;
@@ -16,6 +24,7 @@ export interface GeoLocation {
 export type LocationListener = (loc: GeoLocation) => void;
 
 const LOCATION_STORAGE_KEY = 'fs_shared_location_v1';
+const SPOTS_STORAGE_KEY = 'fs_saved_spots_v1';
 
 export const DEFAULT_LOCATION: GeoLocation = {
   lat: 55.6761,
@@ -33,14 +42,56 @@ export class LocationService {
 
   private static loadStoredLocation(): GeoLocation {
     try {
-      const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
-      if (raw) {
-        return { ...DEFAULT_LOCATION, ...JSON.parse(raw) };
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+        if (raw) {
+          return { ...DEFAULT_LOCATION, ...JSON.parse(raw) };
+        }
       }
     } catch (e) {
       console.warn('Kunne ikke læse lokation fra storage:', e);
     }
     return { ...DEFAULT_LOCATION };
+  }
+
+  public static getSavedSpots(): PhotoSpot[] {
+    try {
+      const raw = localStorage.getItem(SPOTS_STORAGE_KEY);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn('Kunne ikke hente gemte fotospots:', e);
+    }
+    return [];
+  }
+
+  public static saveSpot(name: string, lat: number, lng: number): PhotoSpot {
+    const spots = this.getSavedSpots();
+    const cleanName = name.trim() || 'Mit fotospot';
+    const newSpot: PhotoSpot = {
+      id: 'spot_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      name: cleanName,
+      lat: +lat.toFixed(4),
+      lng: +lng.toFixed(4),
+      createdAt: Date.now()
+    };
+    spots.unshift(newSpot);
+    try {
+      localStorage.setItem(SPOTS_STORAGE_KEY, JSON.stringify(spots));
+    } catch (e) {
+      console.warn('Kunne ikke gemme fotospot:', e);
+    }
+    return newSpot;
+  }
+
+  public static deleteSpot(id: string): void {
+    const spots = this.getSavedSpots().filter((s) => s.id !== id);
+    try {
+      localStorage.setItem(SPOTS_STORAGE_KEY, JSON.stringify(spots));
+    } catch (e) {
+      console.warn('Kunne ikke slette fotospot:', e);
+    }
   }
 
   public static getLocation(): GeoLocation {
