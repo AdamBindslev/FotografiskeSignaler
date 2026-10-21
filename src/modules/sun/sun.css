@@ -1,0 +1,314 @@
+/**
+ * sun.css - FotoSol visualisering og solpositionsstyling
+ */
+
+.sun-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.sun-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.sun-module-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-sun);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* LOKATIONS-BJÆLKE */
+.location-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.loc-info-group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.loc-main-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loc-sub-coords {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.loc-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* HERO TELEMETRI KORT */
+.sun-hero-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-highlight);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.sun-hero-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent-sun-gradient);
+}
+
+.sun-main-telemetry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.sun-time-large {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  line-height: 1.1;
+}
+
+.sun-date-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.sun-phase-badge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.sun-kelvin-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.sun-grid-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-3);
+  text-align: center;
+}
+
+.sun-grid-metrics .stat-num {
+  color: var(--accent-sun);
+}
+
+/* CANVAS SIMULATION / KORT CONTAINER */
+.sun-scene-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.scene-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.canvas-viewport-wrap {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #070a12;
+  border: 1px solid var(--border-subtle);
+}
+
+#sunCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#sunMapContainer {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.camera-preset-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-top: var(--space-2);
+  padding-bottom: 2px;
+}
+
+/* TIDSLINJE & SCRUBBER KONTROL */
+.timeline-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.timeline-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.playback-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-play-pause {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent-sun);
+  color: #07080a;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  transition: transform 0.1s ease;
+}
+
+.btn-play-pause:active {
+  transform: scale(0.92);
+}
+
+.btn-speed-badge {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+
+/* FOTOGRAFISKE HURTIG-SPRING */
+.sun-jump-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-top: var(--space-3);
+  -webkit-overflow-scrolling: touch;
+}
+
+.sun-jump-btn {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  gap: 2px;
+  text-align: left;
+}
+
+.sun-jump-btn:hover, .sun-jump-btn:active {
+  border-color: var(--accent-sun);
+  color: var(--text-main);
+}
+
+.jump-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-sun);
+  font-family: var(--font-mono);
+}
+
+.jump-name {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* GENSTANDSHØJDE VÆLGER */
+.subject-selector-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.subject-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  gap: 4px;
+}
+
+.subject-btn.active {
+  background: var(--bg-surface-elevated);
+  border-color: var(--accent-sun);
+  color: var(--accent-sun);
+}
+
+.subject-icon {
+  font-size: 18px;
+}
+
+.subject-name {
+  font-size: 11px;
+  font-weight: 600;
+}
