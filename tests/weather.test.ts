@@ -170,8 +170,36 @@ describe('WeatherEngine - Fotografiske vurderingsmodeller', () => {
       expect(timing.label).toContain('I morgen tidlig • Om');
     });
 
+    it('Beregner astronomisk nat i aften/nat som kommende i dagtimerne og ikke som forrige nat', () => {
+      const afternoon = new Date('2026-10-21T14:37:00');
+      const todayDate = new Date(2026, 9, 21, 12, 0, 0); // middag Oct 21
+      const sun = AstroCore.getSunTimes(todayDate, 55.67, 12.56);
+
+      let aStart: Date | null = null;
+      let aEnd: Date | null = null;
+
+      if (sun.astronomicalDusk) {
+        if (sun.astronomicalDawn && afternoon < sun.astronomicalDawn) {
+          aStart = new Date(sun.astronomicalDusk.getTime() - 24 * 60 * 60 * 1000);
+          aEnd = sun.astronomicalDawn;
+        } else {
+          aStart = sun.astronomicalDusk;
+          aEnd = sun.astronomicalDawn
+            ? new Date(sun.astronomicalDawn.getTime() + 24 * 60 * 60 * 1000)
+            : new Date(aStart.getTime() + 9 * 60 * 60 * 1000);
+        }
+      }
+
+      const timing = WeatherEngine.getEventTiming(aStart, aEnd, 0, todayDate, 'astro', 80, afternoon);
+
+      expect(timing.isPassed).toBe(false);
+      expect(timing.status).toBe('upcoming');
+      expect(timing.pill).toBe('Kommende');
+      expect(timing.label).toContain('I aften/nat • Om');
+    });
+
     it('Marker begivenheder på fremtidige dage (dag 2+) med ugedag', () => {
-      const fridayDate = new Date('2026-10-23T00:00:00'); // Fredag
+      const fridayDate = new Date(2026, 9, 23, 12, 0, 0); // Fredag
       const timing = WeatherEngine.getEventTiming(null, null, 2, fridayDate, 'evening', 70, today);
 
       expect(timing.isPassed).toBe(false);

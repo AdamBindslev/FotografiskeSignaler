@@ -246,8 +246,22 @@ export default class WeatherModule implements ModuleInstance {
     const eEnd = (sun.blueHourEvening && sun.blueHourEvening.end) || (sun.sunset ? new Date(sun.sunset.getTime() + 45 * 60 * 1000) : null);
     const eveningTiming: EventTiming = WeatherEngine.getEventTiming(eStart, eEnd, this.selectedDayIndex, day.date, 'evening', evening.score, now);
 
-    const aStart = sun.astronomicalDusk || (sun.nightSky?.start ?? null);
-    const aEnd = sun.astronomicalDawn ? new Date(sun.astronomicalDawn.getTime() + 24 * 60 * 60 * 1000) : (aStart ? new Date(aStart.getTime() + 9 * 60 * 60 * 1000) : null);
+    let aStart: Date | null = null;
+    let aEnd: Date | null = null;
+
+    if (sun.astronomicalDusk) {
+      if (isToday && sun.astronomicalDawn && now < sun.astronomicalDawn) {
+        // Natten fra i går er i gang lige nu (tidlig morgenstund før daggry)
+        aStart = new Date(sun.astronomicalDusk.getTime() - 24 * 60 * 60 * 1000);
+        aEnd = sun.astronomicalDawn;
+      } else {
+        // Nattens astronomiske mørke for denne dag (starter i aften og slutter næste morgen)
+        aStart = sun.astronomicalDusk;
+        aEnd = sun.astronomicalDawn
+          ? new Date(sun.astronomicalDawn.getTime() + 24 * 60 * 60 * 1000)
+          : new Date(aStart.getTime() + 9 * 60 * 60 * 1000);
+      }
+    }
     const astroTiming: EventTiming = WeatherEngine.getEventTiming(aStart, aEnd, this.selectedDayIndex, day.date, 'astro', astro.score, now);
 
     // 2. Overordnet dags-banner tekst

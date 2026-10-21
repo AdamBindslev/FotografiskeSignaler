@@ -169,7 +169,7 @@ export class WeatherEngine {
     if (!dayDateStr) return null;
 
     const parts = dayDateStr.split('-');
-    const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
 
     const sun = AstroCore.getSunTimes(date, lat, lng);
     const moon = AstroCore.getMoonIllumination(date);
