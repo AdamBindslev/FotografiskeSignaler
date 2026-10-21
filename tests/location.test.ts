@@ -48,24 +48,39 @@ describe('LocationService - Gemte fotospots', () => {
     expect(remaining[0].id).toBe(spot2.id);
   });
 
-  it('Parser DAWA adressedata korrekt (y=lat, x=lng)', async () => {
-    const mockDawa = [
-      {
-        tekst: 'Rådhuspladsen 1, 1550 København V',
-        adresse: {
-          vejnavn: 'Rådhuspladsen',
-          husnr: '1',
-          postnr: '1550',
-          postnrnavn: 'København V',
-          x: 12.5686,
-          y: 55.6761
+  it('Genkender og parser direkte GPS-koordinater i søgefeltet', async () => {
+    const results = await LocationService.search('55.6761, 12.5683');
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results[0].name).toContain('55.6761');
+    expect(results[0].lat).toBeCloseTo(55.6761, 4);
+    expect(results[0].lng).toBeCloseTo(12.5683, 4);
+  });
+
+  it('Parser Photon adressedata korrekt med gade og husnummer (coords: [lng, lat])', async () => {
+    const mockPhoton = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {
+            housenumber: '1',
+            street: 'Rådhuspladsen',
+            city: 'København V',
+            postcode: '1550',
+            state: 'Region Hovedstaden',
+            country: 'Danmark'
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [12.5686, 55.6761] // geojson er [lng, lat]
+          }
         }
-      }
-    ];
+      ]
+    };
 
     (globalThis as any).fetch = async (url: string) => {
-      if (url.includes('dataforsyningen.dk')) {
-        return { ok: true, json: async () => mockDawa };
+      if (url.includes('photon.komoot.io')) {
+        return { ok: true, json: async () => mockPhoton };
       }
       return { ok: true, json: async () => ({ results: [] }) };
     };
@@ -73,6 +88,7 @@ describe('LocationService - Gemte fotospots', () => {
     const results = await LocationService.search('Rådhuspladsen 1');
     expect(results.length).toBe(1);
     expect(results[0].name).toBe('Rådhuspladsen 1');
+    expect(results[0].sub).toContain('1550');
     expect(results[0].sub).toContain('København V');
     expect(results[0].lat).toBe(55.6761);
     expect(results[0].lng).toBe(12.5686);

@@ -428,6 +428,12 @@ body.theme-night-red input[type="range"]::-webkit-slider-thumb {
   padding: 8px 12px;
   gap: 8px;
   user-select: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.location-bar:hover {
+  border-color: var(--border-highlight);
+  background: var(--bg-surface-elevated);
 }
 
 .loc-info-group {

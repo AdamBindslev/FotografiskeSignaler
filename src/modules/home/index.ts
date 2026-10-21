@@ -81,6 +81,14 @@ export default class HomeModule implements ModuleInstance {
         </div>
 
         <!-- FÆLLES LOKATIONSVÆLGER (§4.2, §9.1) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: -6px; padding: 0 2px;">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+            Valgt lokation
+          </span>
+          <span style="font-size: 11px; color: var(--text-dim);">
+            Søg adresse eller brug GPS
+          </span>
+        </div>
         <div id="homeLocationMount"></div>
 
         ${

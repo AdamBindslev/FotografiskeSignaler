@@ -194,44 +194,82 @@ export class LocationService {
     if (!query || query.trim().length < 2) return [];
     const trimmed = query.trim();
 
-    // Kør DAWA (dansk adresse-API med gade + husnummer) og Open-Meteo (byer, naturområder, udland) sideløbende
-    const dawaUrl = `https://api.dataforsyningen.dk/adresser/autocomplete?q=${encodeURIComponent(trimmed)}`;
-    const meteoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=6&language=da&format=json`;
-
     const results: Array<{ name: string; sub: string; lat: number; lng: number }> = [];
     const seen = new Set<string>();
 
-    const [dawaSettled, meteoSettled] = await Promise.allSettled([
-      fetch(dawaUrl).then(async (r) => (r.ok ? r.json() : [])),
-      fetch(meteoUrl).then(async (r) => (r.ok ? r.json() : {}))
+    // 0. Direkte koordinat-genkendelse (f.eks. "55.6761, 12.5683" eller "55.6761 12.5683")
+    const coordMatch = trimmed.match(/^([+-]?\d{1,2}(?:\.\d+)?)[,\s]+([+-]?\d{1,3}(?:\.\d+)?)$/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        results.push({
+          name: `Koordinater: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°Ø`,
+          sub: 'Direkte koordinat-angivelse',
+          lat,
+          lng
+        });
+        seen.add(`${lat.toFixed(4)},${lng.toFixed(4)}`);
+      }
+    }
+
+    // 1. Kør Photon (OpenStreetMap geocoder med adresser, husnumre, vejnavne og seværdigheder)
+    // og Open-Meteo Geocoding (byer, områder, internationalt) sideløbende.
+    // Photon biases mod Danmark (lat 56.0, lon 11.0)
+    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(trimmed)}&lat=56.0&lon=11.0&limit=8`;
+    const meteoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=5&language=da&format=json`;
+
+    const [photonSettled, meteoSettled] = await Promise.allSettled([
+      fetch(photonUrl).then(async (r) => (r.ok ? r.json() : null)),
+      fetch(meteoUrl).then(async (r) => (r.ok ? r.json() : null))
     ]);
 
-    // 1. DAWA danske adresser
-    if (dawaSettled.status === 'fulfilled' && Array.isArray(dawaSettled.value)) {
-      for (const item of dawaSettled.value) {
-        if (item?.adresse && typeof item.adresse.y === 'number' && typeof item.adresse.x === 'number') {
-          const addr = item.adresse;
-          const street = [addr.vejnavn, addr.husnr, addr.etage, addr.dør].filter(Boolean).join(' ');
-          const city = [addr.postnr, addr.postnrnavn].filter(Boolean).join(' ');
-          const name = street || item.tekst;
-          const sub = city ? `${city}, Danmark` : 'Danmark';
-          const key = `${addr.y.toFixed(4)},${addr.x.toFixed(4)}`;
+    // 2. Behandl Photon adressedata (understøtter konkrete vejnavne og husnumre i DK)
+    if (photonSettled.status === 'fulfilled' && photonSettled.value?.features && Array.isArray(photonSettled.value.features)) {
+      for (const feature of photonSettled.value.features) {
+        if (!feature.geometry?.coordinates || feature.geometry.coordinates.length < 2) continue;
+        const [lng, lat] = feature.geometry.coordinates;
+        const props = feature.properties || {};
 
-          if (!seen.has(key)) {
-            seen.add(key);
-            results.push({
-              name,
-              sub,
-              lat: addr.y, // DAWA: y = breddegrad (lat)
-              lng: addr.x  // DAWA: x = længdegrad (lng)
-            });
-          }
+        let name = '';
+        const streetWithNum = [props.street, props.housenumber].filter(Boolean).join(' ');
+
+        if (props.name && streetWithNum && props.name !== props.street) {
+          name = `${props.name} (${streetWithNum})`;
+        } else if (streetWithNum) {
+          name = streetWithNum;
+        } else if (props.name) {
+          name = props.name;
+        } else if (props.city) {
+          name = props.city;
+        } else {
+          name = 'Ukendt sted';
+        }
+
+        const subParts = [
+          props.postcode,
+          props.city || props.locality || props.district,
+          props.state,
+          props.country
+        ].filter(Boolean);
+
+        const sub = subParts.join(', ');
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({
+            name,
+            sub: sub || 'Danmark',
+            lat,
+            lng
+          });
         }
       }
     }
 
-    // 2. Open-Meteo steder, byer og naturområder
-    if (meteoSettled.status === 'fulfilled' && meteoSettled.value && Array.isArray(meteoSettled.value.results)) {
+    // 3. Open-Meteo steder, byer og naturområder (supplement)
+    if (meteoSettled.status === 'fulfilled' && meteoSettled.value?.results && Array.isArray(meteoSettled.value.results)) {
       for (const item of meteoSettled.value.results) {
         const key = `${item.latitude.toFixed(4)},${item.longitude.toFixed(4)}`;
         if (!seen.has(key)) {

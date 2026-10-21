@@ -1,6 +1,6 @@
 /**
  * LocationBar.ts - Fælles, ensartet lokationskomponent for Hjem, FotoVejr og FotoSol (§4.2, §9.1)
- * Indeholder lokationsvisning, GPS-knap, DAWA/Open-Meteo adressesøgning,
+ * Indeholder lokationsvisning, GPS-knap, adresse- og stedsøgning (Photon OSM + Open-Meteo),
  * samt oprettelse, valg og administration af brugerens egne gemte fotospots.
  */
 
@@ -56,11 +56,26 @@ export class LocationBar {
       <div style="display: flex; flex-direction: column; gap: var(--space-2); width: 100%;">
         <!-- LOKATIONS-BJÆLKE -->
         <div class="location-bar">
-          <div class="loc-info-group" id="locBarToggle" title="Vælg eller søg lokation" style="cursor: pointer;">
-            <span class="loc-main-name">📍 ${this.currentLocation.name}</span>
+          <div class="loc-info-group" id="locBarToggle" title="Tryk for at søge adresse eller vælge lokation" style="cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="loc-main-name">📍 ${this.currentLocation.name}</span>
+              <span class="loc-search-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-highlight); color: var(--accent-sun); font-weight: 600;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Søg adresse
+              </span>
+            </div>
             <span class="loc-sub-coords">${this.currentLocation.lat.toFixed(4)}°N, ${this.currentLocation.lng.toFixed(4)}°Ø • Tryk for at skifte</span>
           </div>
           <div class="loc-actions">
+            <button class="fs-btn-icon ${this.searchOpen ? 'active' : ''}" id="locBarSearchBtn" title="Søg adresse, vejnavn eller by" aria-label="Søg adresse" style="color: var(--accent-sun);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </button>
             <button class="fs-btn-icon" id="locBarGpsBtn" title="Brug aktuel GPS-position" aria-label="Brug GPS">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="8"></circle>
@@ -75,9 +90,21 @@ export class LocationBar {
 
         <!-- SØGEPANEL & GEMTE FOTOSPOTS -->
         <div id="locBarDropdown" class="fs-card location-dropdown-panel" style="display: ${this.searchOpen ? 'block' : 'none'}; margin-bottom: 0;">
-          <!-- Søgefelt med DAWA & Open-Meteo -->
+          <!-- Søgefelt for konkrete adresser og steder -->
           <div style="margin-bottom: 12px;">
-            <input type="text" id="locBarSearchInput" placeholder="Søg adresse, vejnavn, by eller område..." style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="locBarSearchInput" style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Indtast konkret adresse, vejnavn eller by:
+              </label>
+              <button id="locBarCloseDropdown" style="background: none; border: none; color: var(--text-muted); font-size: 12px; cursor: pointer; padding: 2px 6px;">Luk ✕</button>
+            </div>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" id="locBarSearchInput" placeholder="F.eks. Nørrebrogade 10, Strandvejen 42, Tisvilde Hegn..." autocomplete="off" style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-highlight); background: var(--bg-surface); color: var(--text-main); font-size: 14px;">
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+              Tip: Søg på fuld gadeadresse med husnummer, by, seværdighed eller direkte GPS-koordinater.
+            </div>
             <div id="locBarSearchResults" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;"></div>
           </div>
 
@@ -147,8 +174,7 @@ export class LocationBar {
   }
 
   private attachEventListeners(): void {
-    // Åbn/luk dropdown
-    this.container.querySelector('#locBarToggle')?.addEventListener('click', () => {
+    const toggleSearch = () => {
       this.searchOpen = !this.searchOpen;
       this.render();
       if (this.searchOpen) {
@@ -156,6 +182,18 @@ export class LocationBar {
           (this.container.querySelector('#locBarSearchInput') as HTMLInputElement)?.focus();
         }, 50);
       }
+    };
+
+    // Åbn/luk dropdown via bjælke eller søgeknap
+    this.container.querySelector('#locBarToggle')?.addEventListener('click', toggleSearch);
+    this.container.querySelector('#locBarSearchBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSearch();
+    });
+
+    this.container.querySelector('#locBarCloseDropdown')?.addEventListener('click', () => {
+      this.searchOpen = false;
+      this.render();
     });
 
     // GPS knap
@@ -174,7 +212,7 @@ export class LocationBar {
       }
     });
 
-    // Søgefelt med DAWA & Open-Meteo
+    // Søgefelt for adresser, steder og koordinater
     const searchInput = this.container.querySelector('#locBarSearchInput') as HTMLInputElement | null;
     const resultsContainer = this.container.querySelector('#locBarSearchResults') as HTMLElement | null;
 
@@ -191,7 +229,7 @@ export class LocationBar {
         if (resultsContainer) {
           resultsContainer.innerHTML = `
             <div style="font-size:12px;color:var(--text-muted);padding:8px;text-align:center;">
-              Søger i danske adresser og områder...
+              Søger efter adresser og steder...
             </div>
           `;
         }
@@ -201,7 +239,7 @@ export class LocationBar {
         if (matches.length === 0) {
           resultsContainer.innerHTML = `
             <div style="font-size:12px;color:var(--text-dim);padding:8px;text-align:center;">
-              Ingen steder fundet for "${q}"
+              Ingen adresser eller steder fundet for "${q}"
             </div>
           `;
           return;
@@ -211,7 +249,7 @@ export class LocationBar {
           .map(
             (m, i) => `
           <div class="search-result-item" data-idx="${i}" style="display:flex;flex-direction:column;padding:8px 10px;background:var(--bg-surface-elevated);border-radius:var(--radius-xs);cursor:pointer;border:1px solid var(--border-subtle);transition:all 0.1s ease;">
-            <strong style="color:var(--text-main);font-size:13px;">${m.name}</strong>
+            <strong style="color:var(--text-main);font-size:13px;">📍 ${m.name}</strong>
             <span style="color:var(--text-muted);font-size:11px;">${m.sub} • <span style="font-family:var(--font-mono);">${m.lat.toFixed(4)}°N, ${m.lng.toFixed(4)}°Ø</span></span>
           </div>
         `
