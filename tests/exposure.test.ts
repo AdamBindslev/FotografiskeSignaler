@@ -106,6 +106,31 @@ describe('ExposureEngine - Eksponeringsberegninger', () => {
     expect(ExposureEngine.formatShutterSpeed(3665)).toBe('1t 1m 5s');
   });
 
+  it('Beregner og formaterer stop-forskelle for blænde, lukker og ISO', () => {
+    // Blænde fra f/8 til f/2.8 (3 stops mere lys)
+    const diffA1 = ExposureEngine.calculateApertureStopsDiff(8.0, 2.828);
+    expect(diffA1).toBeCloseTo(3.0, 1);
+    expect(ExposureEngine.formatStopsDiff(diffA1)).toBe('+3 stops');
+
+    // Blænde fra f/2.8 til f/8 (3 stops mindre lys)
+    const diffA2 = ExposureEngine.calculateApertureStopsDiff(2.828, 8.0);
+    expect(diffA2).toBeCloseTo(-3.0, 1);
+    expect(ExposureEngine.formatStopsDiff(diffA2)).toBe('-3 stops');
+
+    // Lukkertid fra 1/125s til 1/1000s (3 stops kortere tid / mindre lys)
+    const diffS1 = ExposureEngine.calculateShutterStopsDiff(1 / 125, 1 / 1000);
+    expect(diffS1).toBeCloseTo(-3.0, 1);
+    expect(ExposureEngine.formatStopsDiff(diffS1)).toBe('-3 stops');
+
+    // ISO fra 100 til 400 (2 stops mere lysfølsomhed)
+    const diffI = ExposureEngine.calculateIsoStopsDiff(100, 400);
+    expect(diffI).toBeCloseTo(2.0, 1);
+    expect(ExposureEngine.formatStopsDiff(diffI)).toBe('+2 stops');
+
+    // Uændret
+    expect(ExposureEngine.formatStopsDiff(0)).toBe('0 stops (uændret)');
+  });
+
   it('Genererer gyldig SVG histogramsti baseret på EV-delta', () => {
     const pathCenter = ExposureEngine.generateHistogramPath(0, 200, 50);
     expect(pathCenter.startsWith('M 0,50')).toBe(true);

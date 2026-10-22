@@ -203,6 +203,41 @@ export class ExposureEngine {
   }
 
   /**
+   * Beregner stop-forskel i blænde (positiv = mere lys / større åbning)
+   */
+  public static calculateApertureStopsDiff(baseAperture: number, currentAperture: number): number {
+    if (baseAperture <= 0 || currentAperture <= 0) return 0;
+    return 2 * Math.log2(baseAperture / currentAperture);
+  }
+
+  /**
+   * Beregner stop-forskel i lukkertid (positiv = mere lys / længere tid)
+   */
+  public static calculateShutterStopsDiff(baseShutter: number, currentShutter: number): number {
+    if (baseShutter <= 0 || currentShutter <= 0) return 0;
+    return Math.log2(currentShutter / baseShutter);
+  }
+
+  /**
+   * Beregner stop-forskel i ISO (positiv = mere lysfølsomhed / højere ISO)
+   */
+  public static calculateIsoStopsDiff(baseIso: number, currentIso: number): number {
+    if (baseIso <= 0 || currentIso <= 0) return 0;
+    return Math.log2(currentIso / baseIso);
+  }
+
+  /**
+   * Formaterer stop-forskel pædagogisk med fortegn
+   */
+  public static formatStopsDiff(stops: number): string {
+    if (Math.abs(stops) < 0.15) return '0 stops (uændret)';
+    const sign = stops > 0 ? '+' : '';
+    const rounded = Math.round(stops * 10) / 10;
+    const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace('.', ',');
+    return `${sign}${text} stops`;
+  }
+
+  /**
    * Løser lukkertid givet blænde, ISO og målt EV
    * t = (N^2 / 2^EV100) * (100 / ISO)
    */

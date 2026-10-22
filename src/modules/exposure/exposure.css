@@ -43,6 +43,81 @@
   overflow: hidden;
 }
 
+/* Instruktions-banner for fri tilstand */
+.exposure-instruction-banner {
+  background: var(--bg-surface-elevated);
+  border: 1px dashed var(--border-highlight);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: var(--space-3);
+}
+
+/* Låst baseline referencekort */
+.exposure-baseline-card {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.08) 0%, rgba(22, 27, 34, 0.85) 100%);
+  border: 1px solid var(--accent-exposure, #a855f7);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.baseline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.baseline-diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 8px;
+  text-align: center;
+}
+
+.diff-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diff-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.diff-val {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.diff-val.highlight-shutter {
+  color: #38bdf8;
+}
+
+.diff-val.highlight-iso {
+  color: #a855f7;
+}
+
+.baseline-summary-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+}
+
 .exposure-hero-header {
   display: flex;
   align-items: center;

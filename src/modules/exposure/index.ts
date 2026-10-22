@@ -22,8 +22,13 @@ interface SavedExposureState {
   aperture: number;
   shutter: number;
   iso: number;
-  targetEv: number;
-  evLock: boolean;
+  isLocked: boolean;
+  baseline: {
+    aperture: number;
+    shutter: number;
+    iso: number;
+    ev: number;
+  } | null;
   handheldFocal: number;
   handheldCrop: number;
   handheldIbis: number;
@@ -37,8 +42,8 @@ const DEFAULT_STATE: SavedExposureState = {
   aperture: 8.0,
   shutter: 1 / 125,
   iso: 100,
-  targetEv: 13.0, // Typisk dagslys
-  evLock: false,
+  isLocked: false,
+  baseline: null,
   handheldFocal: 50,
   handheldCrop: 1.0,
   handheldIbis: 0,
@@ -49,11 +54,11 @@ const DEFAULT_STATE: SavedExposureState = {
 };
 
 const SCENE_EV_PRESETS = [
-  { name: 'Fuld sol', ev: 15, tip: 'Klar solskin (Sunny 16)' },
-  { name: 'Overskyet', ev: 12, tip: 'Diffust dagslys' },
-  { name: 'Gylden time', ev: 9, tip: 'Solopgang / Solnedgang' },
-  { name: 'Indendørs', ev: 6, tip: 'Hjemme- eller galleribelysning' },
-  { name: 'By om natten', ev: 3, tip: 'Gadebelysning & neonskilte' }
+  { name: 'Fuld sol', ev: 15, aperture: 16.0, shutter: 1 / 125, iso: 100, tip: 'Klar solskin (Sunny 16)' },
+  { name: 'Overskyet', ev: 12, aperture: 8.0, shutter: 1 / 125, iso: 100, tip: 'Diffust dagslys' },
+  { name: 'Gylden time', ev: 9, aperture: 4.0, shutter: 1 / 125, iso: 200, tip: 'Solopgang / Solnedgang' },
+  { name: 'Indendørs', ev: 6, aperture: 2.8, shutter: 1 / 60, iso: 800, tip: 'Hjemme- eller galleribelysning' },
+  { name: 'By om natten', ev: 3, aperture: 2.0, shutter: 1 / 30, iso: 1600, tip: 'Gadebelysning & neonskilte' }
 ];
 
 export default class ExposureModule implements ModuleInstance {
@@ -180,9 +185,7 @@ export default class ExposureModule implements ModuleInstance {
                 <span class="hero-main-title">Eksponeringstrekanten</span>
                 <span class="hero-sub-title">Samspillet mellem blænde, lukkertid & ISO</span>
               </div>
-              <button class="fs-btn ${this.state.evLock ? 'active' : ''}" id="btnToggleEvLock" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">
-                ${this.state.evLock ? '🔒 EV Låst' : '🔓 Fri måling'}
-              </button>
+              <span class="fs-badge" id="expLockBadge">Fri tilstand</span>
             </div>
 
             <!-- SVG Diagram -->
@@ -211,14 +214,17 @@ export default class ExposureModule implements ModuleInstance {
             <div id="expStatusTextWrap"></div>
           </div>
 
+          <!-- DYNAMISK BASELINE REFERENCE / LÅS-KONTROL -->
+          <div id="expBaselineMount"></div>
+
           <!-- KONTROLPANEL FOR TREKANT -->
           <div class="fs-card">
             <div class="fs-card-header">
               <span class="fs-card-title">Kameraindstillinger</span>
               <div style="display: flex; gap: 4px;" id="scenePresetWrap">
                 <select class="fs-btn" id="scenePresetSelect" style="padding: 3px 8px; font-size: 11px; min-height: 26px;">
-                  <option value="" disabled selected>Vælg lysscene...</option>
-                  ${SCENE_EV_PRESETS.map((p) => `<option value="${p.ev}">${p.name} (EV ${p.ev})</option>`).join('')}
+                  <option value="" disabled selected>Hurtig lysscene (valgfri)...</option>
+                  ${SCENE_EV_PRESETS.map((p, idx) => `<option value="${idx}">${p.name} (EV ${p.ev})</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -517,27 +523,19 @@ export default class ExposureModule implements ModuleInstance {
       });
     });
 
-    // 2. EV-Lock knap
-    this.container.querySelector('#btnToggleEvLock')?.addEventListener('click', () => {
-      this.state.evLock = !this.state.evLock;
-      const btn = this.container.querySelector('#btnToggleEvLock');
-      if (btn) {
-        btn.classList.toggle('active', this.state.evLock);
-        btn.textContent = this.state.evLock ? '🔒 EV Låst' : '🔓 Fri måling';
-      }
-      this.updateTriangleView();
-      this.saveState();
-    });
-
-    // 3. Scene Presets
+    // 2. Scene Presets (valgfri genvej)
     const sceneSelect = this.container.querySelector('#scenePresetSelect') as HTMLSelectElement;
     sceneSelect?.addEventListener('change', () => {
-      const ev = Number(sceneSelect.value);
-      if (Number.isFinite(ev)) {
-        this.state.targetEv = ev;
-        if (this.state.evLock) {
-          // Løs lukker så aktuel EV matcher targetEv
-          this.state.shutter = ExposureEngine.solveShutter(this.state.aperture, this.state.iso, this.state.targetEv);
+      const idx = Number(sceneSelect.value);
+      const preset = SCENE_EV_PRESETS[idx];
+      if (preset) {
+        this.state.aperture = preset.aperture;
+        this.state.shutter = preset.shutter;
+        this.state.iso = preset.iso;
+        // Hvis allerede låst, frigør så brugeren ser den nye måling inden låsning
+        if (this.state.isLocked) {
+          this.state.isLocked = false;
+          this.state.baseline = null;
         }
         this.syncSlidersFromState();
         this.updateTriangleView();
@@ -776,9 +774,9 @@ export default class ExposureModule implements ModuleInstance {
 
   private handleApertureChange(newA: number): void {
     this.state.aperture = newA;
-    if (this.state.evLock) {
-      // Tilpas lukkertid for at bevare EV
-      const targetS = ExposureEngine.solveShutter(this.state.aperture, this.state.iso, this.state.targetEv);
+    if (this.state.isLocked && this.state.baseline) {
+      // Tilpas lukkertid for at bevare det låste udgangspunkt
+      const targetS = ExposureEngine.solveShutter(this.state.aperture, this.state.iso, this.state.baseline.ev);
       this.state.shutter = ExposureEngine.findClosestValue(targetS, STANDARD_SHUTTERS);
     }
     this.syncSlidersFromState();
@@ -788,9 +786,9 @@ export default class ExposureModule implements ModuleInstance {
 
   private handleShutterChange(newS: number): void {
     this.state.shutter = newS;
-    if (this.state.evLock) {
-      // Tilpas blænde for at bevare EV
-      const targetA = ExposureEngine.solveAperture(this.state.shutter, this.state.iso, this.state.targetEv);
+    if (this.state.isLocked && this.state.baseline) {
+      // Tilpas blænde for at bevare det låste udgangspunkt
+      const targetA = ExposureEngine.solveAperture(this.state.shutter, this.state.iso, this.state.baseline.ev);
       this.state.aperture = ExposureEngine.findClosestValue(targetA, STANDARD_APERTURES);
     }
     this.syncSlidersFromState();
@@ -800,9 +798,9 @@ export default class ExposureModule implements ModuleInstance {
 
   private handleIsoChange(newI: number): void {
     this.state.iso = newI;
-    if (this.state.evLock) {
-      // Tilpas lukkertid for at bevare EV
-      const targetS = ExposureEngine.solveShutter(this.state.aperture, this.state.iso, this.state.targetEv);
+    if (this.state.isLocked && this.state.baseline) {
+      // Tilpas lukkertid for at bevare det låste udgangspunkt
+      const targetS = ExposureEngine.solveShutter(this.state.aperture, this.state.iso, this.state.baseline.ev);
       this.state.shutter = ExposureEngine.findClosestValue(targetS, STANDARD_SHUTTERS);
     }
     this.syncSlidersFromState();
@@ -854,20 +852,28 @@ export default class ExposureModule implements ModuleInstance {
     const ev100 = ExposureEngine.calculateEV100(this.state.aperture, this.state.shutter);
     const evCurrent = ExposureEngine.calculateEV(this.state.aperture, this.state.shutter, this.state.iso);
 
-    if (this.state.evLock) {
-      this.state.targetEv = evCurrent;
-    }
-
+    const targetEv = this.state.isLocked && this.state.baseline ? this.state.baseline.ev : evCurrent;
     const deltaEv = ExposureEngine.calculateMeterDelta(
       this.state.aperture,
       this.state.shutter,
       this.state.iso,
-      this.state.targetEv
+      targetEv
     );
 
-    // Top badge
+    // Top badges
     const topBadge = this.container.querySelector('#expCurrentEvBadge');
     if (topBadge) topBadge.textContent = `EV ${evCurrent.toFixed(1)}`;
+
+    const lockBadge = this.container.querySelector('#expLockBadge');
+    if (lockBadge) {
+      if (this.state.isLocked && this.state.baseline) {
+        lockBadge.textContent = `🔒 Låst (EV ${this.state.baseline.ev.toFixed(1)})`;
+        lockBadge.className = 'fs-badge badge-exposure';
+      } else {
+        lockBadge.textContent = '🔓 Fri tilstand';
+        lockBadge.className = 'fs-badge';
+      }
+    }
 
     // Værditekster
     const dispA = this.container.querySelector('#dispAperture');
@@ -878,6 +884,9 @@ export default class ExposureModule implements ModuleInstance {
     if (dispS) dispS.textContent = ExposureEngine.formatShutterSpeed(this.state.shutter);
     if (dispI) dispI.textContent = `ISO ${this.state.iso}`;
 
+    // Render baseline reference sektion
+    this.renderBaselineSection(deltaEv);
+
     // Render visuel SVG trekant, EV meter og histogram
     this.visualizer?.render({
       aperture: this.state.aperture,
@@ -885,10 +894,101 @@ export default class ExposureModule implements ModuleInstance {
       iso: this.state.iso,
       ev100,
       evCurrent,
-      targetEv: this.state.targetEv,
+      targetEv,
       deltaEv,
-      evLock: this.state.evLock
+      isLocked: this.state.isLocked,
+      baseline: this.state.baseline
     });
+  }
+
+  private renderBaselineSection(deltaEv: number): void {
+    const mountEl = this.container.querySelector('#expBaselineMount');
+    if (!mountEl) return;
+
+    if (!this.state.isLocked || !this.state.baseline) {
+      mountEl.innerHTML = `
+        <div class="exposure-instruction-banner">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4; max-width: 440px;">
+              <strong style="color: var(--text-main); display: block; margin-bottom: 2px;">Trin 1: Indstil hvad dit kamera måler</strong>
+              Juster blænde, lukker og ISO frit herunder (eller vælg en hurtig lysscene). Lås derefter for at udforske ækvivalente tider eller bruge ND-filter.
+            </div>
+            <button class="fs-btn fs-btn-accent-sun" id="btnLockBaseline" style="padding: 8px 16px; font-size: 13px; font-weight: 700; min-height: 38px; white-space: nowrap;">
+              🔒 Lås som udgangspunkt
+            </button>
+          </div>
+        </div>
+      `;
+
+      mountEl.querySelector('#btnLockBaseline')?.addEventListener('click', () => {
+        const evCurrent = ExposureEngine.calculateEV(this.state.aperture, this.state.shutter, this.state.iso);
+        this.state.baseline = {
+          aperture: this.state.aperture,
+          shutter: this.state.shutter,
+          iso: this.state.iso,
+          ev: Number(evCurrent.toFixed(1))
+        };
+        this.state.isLocked = true;
+        this.updateTriangleView();
+        this.saveState();
+      });
+    } else {
+      const b = this.state.baseline;
+      const diffAperture = ExposureEngine.calculateApertureStopsDiff(b.aperture, this.state.aperture);
+      const diffShutter = ExposureEngine.calculateShutterStopsDiff(b.shutter, this.state.shutter);
+      const diffIso = ExposureEngine.calculateIsoStopsDiff(b.iso, this.state.iso);
+
+      let summaryText = '✅ <strong>Gensidighedsloven:</strong> Eksponeringen er 100% identisk med dit udgangspunkt (0 EV afvigelse).';
+      if (deltaEv <= -0.2) {
+        summaryText = `⚠️ <strong>Grænseværdi:</strong> Indstillingerne kan ikke kompensere yderligere (${Math.abs(deltaEv).toFixed(1)} stops for mørkt).`;
+      } else if (deltaEv >= 0.2) {
+        summaryText = `⚠️ <strong>Grænseværdi:</strong> Indstillingerne kan ikke kompensere yderligere (${deltaEv.toFixed(1)} stops for lyst).`;
+      }
+
+      mountEl.innerHTML = `
+        <div class="exposure-baseline-card">
+          <div class="baseline-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">🎯</span>
+              <div>
+                <strong style="font-size: 13px; color: var(--text-main);">Låst udgangspunkt</strong>
+                <span style="font-size: 11px; color: var(--text-muted); display: block; font-family: var(--font-mono);">
+                  f/${b.aperture} • ${ExposureEngine.formatShutterSpeed(b.shutter)} • ISO ${b.iso} (EV ${b.ev.toFixed(1)})
+                </span>
+              </div>
+            </div>
+            <button class="fs-btn" id="btnUnlockBaseline" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">
+              🔓 Frigør / Ny måling
+            </button>
+          </div>
+
+          <div class="baseline-diff-grid">
+            <div class="diff-item">
+              <span class="diff-label">Blænde</span>
+              <span class="diff-val">${ExposureEngine.formatStopsDiff(diffAperture)}</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">Lukkertid</span>
+              <span class="diff-val highlight-shutter">${ExposureEngine.formatStopsDiff(diffShutter)}</span>
+            </div>
+            <div class="diff-item">
+              <span class="diff-label">ISO</span>
+              <span class="diff-val highlight-iso">${ExposureEngine.formatStopsDiff(diffIso)}</span>
+            </div>
+          </div>
+          <div class="baseline-summary-text">
+            ${summaryText}
+          </div>
+        </div>
+      `;
+
+      mountEl.querySelector('#btnUnlockBaseline')?.addEventListener('click', () => {
+        this.state.isLocked = false;
+        this.state.baseline = null;
+        this.updateTriangleView();
+        this.saveState();
+      });
+    }
   }
 
   private updateHandheldView(): void {

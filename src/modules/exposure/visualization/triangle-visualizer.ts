@@ -13,7 +13,13 @@ export interface TriangleRenderData {
   evCurrent: number;
   targetEv: number;
   deltaEv: number;
-  evLock: boolean;
+  isLocked: boolean;
+  baseline: {
+    aperture: number;
+    shutter: number;
+    iso: number;
+    ev: number;
+  } | null;
 }
 
 export class TriangleVisualizer {
@@ -153,23 +159,28 @@ export class TriangleVisualizer {
 
   private renderMeter(data: TriangleRenderData): void {
     // DeltaEv: -3 (undereksponeret) til +3 (overeksponeret)
-    // Beregn procentvis nåleposition (0% ved -3, 50% ved 0, 100% ved +3)
-    const clampDelta = Math.max(-3, Math.min(3, data.deltaEv));
+    // I fri tilstand vises måleren neutralt i midten
+    const effectiveDelta = data.isLocked ? data.deltaEv : 0;
+    const clampDelta = Math.max(-3, Math.min(3, effectiveDelta));
     const percent = ((clampDelta + 3) / 6) * 100;
 
-    let deltaFormatted = `${data.deltaEv >= 0 ? '+' : ''}${data.deltaEv.toFixed(1)} EV`;
+    let deltaFormatted = `${effectiveDelta >= 0 ? '+' : ''}${effectiveDelta.toFixed(1)} EV`;
     let statusClass = 'status-balanced';
     let statusLabel = 'Balanceret eksponering';
-    let adviceText = 'Kombinationen matcher scenens belysning neutralt.';
+    let adviceText = 'Kombinationen matcher dit låste udgangspunkt.';
 
-    if (data.deltaEv <= -0.33) {
+    if (!data.isLocked) {
+      statusClass = 'status-balanced';
+      statusLabel = 'Fri tilstand • Indstil måling';
+      adviceText = 'Juster blænde, lukker og ISO til hvad dit kamera måler, og tryk derefter på "Lås som udgangspunkt".';
+    } else if (effectiveDelta <= -0.2) {
       statusClass = 'status-under';
       statusLabel = `Undereksponeret (${deltaFormatted})`;
-      adviceText = 'Billedet bliver for mørkt. Åbn blænden, forlæng lukkertiden eller hæv ISO.';
-    } else if (data.deltaEv >= 0.33) {
+      adviceText = 'Indstillingerne har nået grænsen og lukker mindre lys ind end dit låste udgangspunkt.';
+    } else if (effectiveDelta >= 0.2) {
       statusClass = 'status-over';
       statusLabel = `Overeksponeret (${deltaFormatted})`;
-      adviceText = 'Billedet bliver for lyst / udbrændt. Luk blænden, afkort lukkertiden eller sænk ISO.';
+      adviceText = 'Indstillingerne har nået grænsen og lukker mere lys ind end dit låste udgangspunkt.';
     }
 
     this.meterEl.innerHTML = `
@@ -187,10 +198,14 @@ export class TriangleVisualizer {
       </div>
     `;
 
+    const lockStatusHeader = data.isLocked && data.baseline
+      ? `🔒 LÅST TIL EV ${data.baseline.ev.toFixed(1)}`
+      : `🔓 FRI MÅLING (EV ${data.evCurrent.toFixed(1)})`;
+
     this.statusTextEl.innerHTML = `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
         <span class="fs-badge badge-${statusClass}">${statusLabel}</span>
-        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">${data.evLock ? '🔒 EV LÅST' : 'Målværdi: EV ' + data.targetEv.toFixed(1)}</span>
+        <span style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">${lockStatusHeader}</span>
       </div>
       <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0;">${adviceText}</p>
     `;
