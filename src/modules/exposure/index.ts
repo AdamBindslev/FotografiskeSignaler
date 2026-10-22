@@ -232,13 +232,13 @@ export default class ExposureModule implements ModuleInstance {
             <!-- 1. BLÆNDE (Aperture) -->
             <div class="fs-slider-wrap">
               <div class="fs-slider-header">
-                <span class="fs-slider-label">Blænde (Aperture)</span>
+                <span class="fs-slider-label">Blænde <span style="font-size:10px;color:var(--text-dim);font-weight:normal;">• Lysåbning</span></span>
                 <span class="fs-slider-val" id="dispAperture" style="color: #f59e0b;">f/${this.state.aperture}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="fs-btn-icon" id="btnApertureMinus" aria-label="Større blænde">-</button>
+                <button class="fs-btn-icon" id="btnApertureMinus" title="Luk blænde ned (mindre lys)" aria-label="Luk blænde ned (mindre lys)">-</button>
                 <input type="range" id="sliderAperture" min="0" max="${STANDARD_APERTURES.length - 1}" step="1" value="0">
-                <button class="fs-btn-icon" id="btnAperturePlus" aria-label="Mindre blænde">+</button>
+                <button class="fs-btn-icon" id="btnAperturePlus" title="Åbn blænde op (mere lys)" aria-label="Åbn blænde op (mere lys)">+</button>
               </div>
               <div class="quick-btn-scroll" id="apertureQuickScroll">
                 ${apertureButtons}
@@ -248,13 +248,13 @@ export default class ExposureModule implements ModuleInstance {
             <!-- 2. LUKKERTID (Shutter) -->
             <div class="fs-slider-wrap" style="margin-top: var(--space-3);">
               <div class="fs-slider-header">
-                <span class="fs-slider-label">Lukkertid (Shutter Speed)</span>
+                <span class="fs-slider-label">Lukkertid <span style="font-size:10px;color:var(--text-dim);font-weight:normal;">• Eksponeringstid</span></span>
                 <span class="fs-slider-val" id="dispShutter" style="color: #38bdf8;">${ExposureEngine.formatShutterSpeed(this.state.shutter)}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="fs-btn-icon" id="btnShutterMinus" aria-label="Hurtigere lukker">-</button>
+                <button class="fs-btn-icon" id="btnShutterMinus" title="Kortere tid (mindre lys)" aria-label="Kortere tid (mindre lys)">-</button>
                 <input type="range" id="sliderShutter" min="0" max="${STANDARD_SHUTTERS.length - 1}" step="1" value="0">
-                <button class="fs-btn-icon" id="btnShutterPlus" aria-label="Langsommere lukker">+</button>
+                <button class="fs-btn-icon" id="btnShutterPlus" title="Længere tid (mere lys)" aria-label="Længere tid (mere lys)">+</button>
               </div>
               <div class="quick-btn-scroll" id="shutterQuickScroll">
                 ${shutterButtons}
@@ -264,13 +264,13 @@ export default class ExposureModule implements ModuleInstance {
             <!-- 3. ISO FØLSOMHED -->
             <div class="fs-slider-wrap" style="margin-top: var(--space-3);">
               <div class="fs-slider-header">
-                <span class="fs-slider-label">Lysfølsomhed (ISO)</span>
+                <span class="fs-slider-label">Lysfølsomhed <span style="font-size:10px;color:var(--text-dim);font-weight:normal;">• ISO</span></span>
                 <span class="fs-slider-val" id="dispIso" style="color: #a855f7;">ISO ${this.state.iso}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="fs-btn-icon" id="btnIsoMinus" aria-label="Lavere ISO">-</button>
+                <button class="fs-btn-icon" id="btnIsoMinus" title="Lavere ISO (mindre lys)" aria-label="Lavere ISO (mindre lys)">-</button>
                 <input type="range" id="sliderIso" min="0" max="${STANDARD_ISOS.length - 1}" step="1" value="0">
-                <button class="fs-btn-icon" id="btnIsoPlus" aria-label="Højere ISO">+</button>
+                <button class="fs-btn-icon" id="btnIsoPlus" title="Højere ISO (mere lys)" aria-label="Højere ISO (mere lys)">+</button>
               </div>
               <div class="quick-btn-scroll" id="isoQuickScroll">
                 ${isoButtons}

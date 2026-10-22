@@ -32,12 +32,13 @@ export const STANDARD_ND_FILTERS: NdFilterDef[] = [
   { id: 'nd1000000', name: 'ND1000000', stops: 20, ndFactor: 1048576, opticalDensity: 6.0, description: '20 stops (Solfotografering)' }
 ];
 
+// Sorteret efter lysmængde (fra mørkest f/32 til lysest f/1.0, så højre altid er mere lys):
 export const STANDARD_APERTURES = [
-  1.0, 1.2, 1.4, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6,
-  6.3, 7.1, 8.0, 9.0, 10.0, 11.0, 13.0, 14.0, 16.0, 18.0, 20.0, 22.0, 32.0
+  32.0, 22.0, 20.0, 18.0, 16.0, 14.0, 13.0, 11.0, 10.0, 9.0, 8.0, 7.1, 6.3, 5.6,
+  5.0, 4.5, 4.0, 3.5, 3.2, 2.8, 2.5, 2.2, 2.0, 1.8, 1.4, 1.2, 1.0
 ];
 
-export const FULL_STOP_APERTURES = [1.0, 1.4, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0, 32.0];
+export const FULL_STOP_APERTURES = [22.0, 16.0, 11.0, 8.0, 5.6, 4.0, 2.8, 2.0, 1.4, 1.0];
 
 export const STANDARD_SHUTTERS = [
   1 / 8000, 1 / 6400, 1 / 5000, 1 / 4000, 1 / 3200, 1 / 2500, 1 / 2000,
