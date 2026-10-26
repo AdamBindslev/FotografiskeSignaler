@@ -53,9 +53,12 @@ export default class SunModule implements ModuleInstance {
   public onActivate(context?: any): void {
     this.simulator?.resume();
 
-    // Håndter kontekst fra f.eks. Vejr ("Se lysretning i Sol")
+    let shouldFocusSun = false;
+
+    // Håndter kontekst fra f.eks. Vejr
     if (context?.date) {
       this.currentDate = new Date(context.date);
+      shouldFocusSun = true;
     }
     if (context?.params) {
       const p = context.params as URLSearchParams;
@@ -65,11 +68,13 @@ export default class SunModule implements ModuleInstance {
         if (parsed) {
           parsed.setHours(this.currentDate.getHours(), this.currentDate.getMinutes(), 0, 0);
           this.currentDate = parsed;
+          shouldFocusSun = true;
         }
       }
       if (p.has('hour')) {
         const h = Number(p.get('hour')) || 12;
         this.currentDate.setHours(h, 0, 0, 0);
+        shouldFocusSun = true;
       }
       if (p.has('lat') && p.has('lng')) {
         const lat = Number(p.get('lat'));
@@ -84,8 +89,19 @@ export default class SunModule implements ModuleInstance {
       }
     }
 
+    // Synkroniser tidslinjeslider med den aktuelle tid
+    const slider = this.container.querySelector('#sunTimeSlider') as HTMLInputElement | null;
+    if (slider) {
+      const minutes = this.currentDate.getHours() * 60 + this.currentDate.getMinutes();
+      slider.value = String(minutes);
+    }
+
     this.updateLocationDisplay();
     this.updateCalculations();
+
+    if (shouldFocusSun) {
+      this.simulator?.resetCamera('default');
+    }
 
     if (this.activeViewMode === 'map') {
       this.mapView?.invalidateSize();
@@ -756,13 +772,13 @@ export default class SunModule implements ModuleInstance {
     if (!jumpsWrap) return;
 
     const events = [
-      { name: 'Blå time', time: times.blueHourMorning?.start },
+      { name: 'Blå time (morgen)', time: times.blueHourMorning?.start },
       { name: 'Solopgang', time: times.sunrise },
-      { name: 'Gylden time', time: times.goldenHourMorning?.end },
+      { name: 'Gylden time (morgen)', time: times.goldenHourMorning?.end },
       { name: 'Solmiddag', time: times.solarNoon },
-      { name: 'Gylden time', time: times.goldenHourEvening?.start },
+      { name: 'Gylden time (aften)', time: times.goldenHourEvening?.start },
       { name: 'Solnedgang', time: times.sunset },
-      { name: 'Blå time', time: times.blueHourEvening?.end }
+      { name: 'Blå time (aften)', time: times.blueHourEvening?.end }
     ].filter((e) => e.time !== null && e.time !== undefined);
 
     jumpsWrap.innerHTML = events
@@ -785,6 +801,7 @@ export default class SunModule implements ModuleInstance {
         const slider = this.container.querySelector('#sunTimeSlider') as HTMLInputElement;
         if (slider) slider.value = String(minutes);
         this.updateCalculations();
+        this.simulator?.resetCamera('default');
       });
     });
   }

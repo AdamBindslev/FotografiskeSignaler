@@ -169,6 +169,24 @@
   color: var(--text-muted);
   font-family: var(--font-mono);
   margin-bottom: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.compass-direction-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--accent-sun, #f59e0b);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
 }
 
 .photo-card-desc {
@@ -182,6 +200,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
   border-top: 1px solid var(--border-subtle);
   padding-top: 8px;
 }
@@ -190,15 +210,17 @@
 .btn-goto-fotosol {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--accent-sun);
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: var(--radius-xs);
-  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 

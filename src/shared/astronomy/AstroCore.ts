@@ -380,6 +380,8 @@ export class AstroCore {
     const compassDir = this.getCompassDirection(shadowAzimuth);
 
     if (altitudeDeg <= 0) {
+      const isTwilightRim = altitudeDeg > -6;
+      const sunCompass = this.getCompassDirection(azimuthDeg);
       return {
         hasDirectShadow: false,
         shadowLength: Infinity,
@@ -388,8 +390,12 @@ export class AstroCore {
         shadowCompass: compassDir,
         objectHeight: height,
         lightPhase: this.getLightPhase(altitudeDeg),
-        description: 'Solen er under horisonten. Diffust tusmørke – ingen direkte skygger.',
-        cameraTip: 'Brug stativ og lange lukkertider. Blødt ambient lys uden hårde kontraster.'
+        description: isTwilightRim
+          ? `Solskiven ligger lige under horisonten (${altitudeDeg.toFixed(1)}°) mod ${sunCompass} (${azimuthDeg.toFixed(0)}°). Blødt tusmørkelys og glød i horisonten.`
+          : 'Solen er under horisonten. Diffust tusmørke/nat – ingen direkte skygger.',
+        cameraTip: isTwilightRim
+          ? 'Perfekt til silhuetter mod den lysende horisont, den blå time og lange lukkertider på stativ.'
+          : 'Brug stativ og lange lukkertider. Blødt ambient lys uden hårde kontraster.'
       };
     }
 

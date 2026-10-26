@@ -324,8 +324,9 @@ export class ShadowSimulator {
       grad.addColorStop(1, '#211822');
     } else if (alt > -6) {
       grad.addColorStop(0, '#060a17');
-      grad.addColorStop(0.55, '#111833');
-      grad.addColorStop(0.85, '#1b2247');
+      grad.addColorStop(0.5, '#111833');
+      grad.addColorStop(0.76, '#2d1e3e');
+      grad.addColorStop(0.88, alt > -3 ? '#6b2d1a' : '#3b2247');
       grad.addColorStop(1, '#0b0f1c');
     } else {
       grad.addColorStop(0, '#04060c');
@@ -683,31 +684,39 @@ export class ShadowSimulator {
   }
 
   private drawSunInSky(w: number, h: number, cx: number, cy: number, altDeg: number, azDeg: number, project: any): void {
-    if (altDeg <= -0.833) {
-      this.drawSubHorizonIndicator(w, h, altDeg);
-      return;
-    }
-
     const isRed = this.isNightRedMode();
     const relAz = ((azDeg - this.camera.azimuth + 540) % 360) - 180;
     const isFacingSun = Math.abs(relAz) < 95;
     const pTop = project(0, 0, this.subjectHeight);
 
+    // Dybt under horisonten (nautisk/astronomisk tusmørke eller nat: <= -8°):
+    // Vis kun kompasmarkering langs horisonten og statusindikator i toppen
+    if (altDeg <= -8) {
+      this.drawSubHorizonIndicator(w, h, altDeg, azDeg, project);
+      return;
+    }
+
+    // Lige før solopgang / efter solnedgang (-8° < altDeg <= 0°):
+    // Vis en tydelig markering af hvor solskiven befinder sig lige under horisonten!
+    const isBelowHorizon = altDeg <= 0;
+
     if (!isFacingSun) {
       // Solen befinder sig bag kameraets synsvinkel - vis diskret statusindikator
       this.ctx.save();
-      const badgeText = `☀ Sol: ${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)} (+${altDeg.toFixed(1)}°) [Bag synsvinkel]`;
+      const sign = altDeg >= 0 ? '+' : '';
+      const phaseHint = isBelowHorizon ? 'Under horisonten' : 'Bag synsvinkel';
+      const badgeText = `☀ Solskive: ${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)} (${sign}${altDeg.toFixed(1)}°) [${phaseHint}]`;
       this.ctx.fillStyle = isRed ? 'rgba(24, 2, 2, 0.92)' : 'rgba(15, 23, 42, 0.88)';
-      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.45)' : 'rgba(245, 158, 11, 0.4)';
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.45)' : isBelowHorizon ? 'rgba(249, 115, 22, 0.5)' : 'rgba(245, 158, 11, 0.4)';
       this.ctx.lineWidth = 1;
-      const bW = 230;
+      const bW = 265;
       const bH = 22;
       this.ctx.beginPath();
       this.ctx.roundRect(14, 14, bW, bH, 4);
       this.ctx.fill();
       this.ctx.stroke();
 
-      this.ctx.fillStyle = isRed ? '#ff4d4d' : '#fbbf24';
+      this.ctx.fillStyle = isRed ? '#ff4d4d' : isBelowHorizon ? '#fb923c' : '#fbbf24';
       this.ctx.font = 'bold 10px ui-monospace, SFMono-Regular, monospace';
       this.ctx.textAlign = 'left';
       this.ctx.textBaseline = 'middle';
@@ -717,36 +726,146 @@ export class ShadowSimulator {
     }
 
     // Solen er i synsfeltet:
-    // Placer solen kollinært med skyggen for fysisk perfekt sammenhæng!
-    const radShadowAz = this.simData.shadowAzimuth * rad;
-    const dirX = sin(radShadowAz);
-    const dirY = cos(radShadowAz);
-    const shadowLen = Math.max(0.5, this.simData.shadowLength);
-    const pTip = project(dirX * shadowLen, dirY * shadowLen, 0);
-
-    // Vektor i 2D fra skyggespids gennem motivets hoved mod solen
-    const vx = pTop.x - pTip.x;
-    const vy = pTop.y - pTip.y;
-    const vLen = Math.hypot(vx, vy);
-
     let sunScreenX = cx;
     let sunScreenY = cy - 60;
+    let horizonPt = { x: cx, y: cy - 30 };
 
-    if (vLen > 0.001) {
-      // Ønsket visuel afstand fra motivets hoved til solen på himlen
-      const desiredDist = Math.max(70, Math.min(180, Math.min(w, h) * 0.44));
-      const k = desiredDist / vLen;
+    // Punkt på horisont-kanten (r = 24m) i solens azimut-retning
+    const radSunAz = azDeg * rad;
+    const sunDirX = sin(radSunAz);
+    const sunDirY = cos(radSunAz);
+    horizonPt = project(sunDirX * 24, sunDirY * 24, 0);
 
-      sunScreenX = pTop.x + vx * k;
-      sunScreenY = pTop.y + vy * k;
+    if (!isBelowHorizon) {
+      // Solen er over horisonten: Placer solen kollinært med skyggen for fysisk sammenhæng
+      const radShadowAz = this.simData.shadowAzimuth * rad;
+      const dirX = sin(radShadowAz);
+      const dirY = cos(radShadowAz);
+      const shadowLen = Math.max(0.5, this.simData.shadowLength);
+      const pTip = project(dirX * shadowLen, dirY * shadowLen, 0);
 
-      // Hold solen inden for synsfeltets rammer
-      sunScreenX = Math.max(36, Math.min(w - 75, sunScreenX));
-      sunScreenY = Math.max(28, Math.min(h * 0.65, sunScreenY));
+      const vx = pTop.x - pTip.x;
+      const vy = pTop.y - pTip.y;
+      const vLen = Math.hypot(vx, vy);
+
+      if (vLen > 0.001) {
+        const desiredDist = Math.max(70, Math.min(180, Math.min(w, h) * 0.44));
+        const k = desiredDist / vLen;
+
+        sunScreenX = pTop.x + vx * k;
+        sunScreenY = pTop.y + vy * k;
+
+        sunScreenX = Math.max(36, Math.min(w - 75, sunScreenX));
+        sunScreenY = Math.max(28, Math.min(h * 0.65, sunScreenY));
+      }
+    } else {
+      // Solskiven er lige under horisonten (-8° til 0°):
+      // Placer solskive-markøren ved horisontlinjen i solens præcise azimutretning,
+      // forskudt en smule nedad proportionelt med hvor dybt under horisonten den er.
+      const subDepthPx = Math.min(34, Math.abs(altDeg) * 4.5);
+      sunScreenX = Math.max(44, Math.min(w - 85, horizonPt.x));
+      const baseHorizonY = Math.max(40, Math.min(h * 0.62, horizonPt.y));
+      sunScreenY = baseHorizonY + subDepthPx;
+      horizonPt = { x: sunScreenX, y: baseHorizonY };
     }
 
     this.ctx.save();
 
+    if (isBelowHorizon) {
+      // --- VISNING AF SOLSKIVE LIGE FØR SOLOPGANG / EFTER SOLNEDGANG ---
+      // 1. Bred tusmørke-horisontglød (twilight wedge) langs horisonten over solskiven
+      const horizonGlow = this.ctx.createRadialGradient(
+        horizonPt.x,
+        horizonPt.y,
+        4,
+        horizonPt.x,
+        horizonPt.y,
+        75
+      );
+      if (isRed) {
+        horizonGlow.addColorStop(0, 'rgba(255, 77, 77, 0.55)');
+        horizonGlow.addColorStop(0.45, 'rgba(185, 28, 28, 0.25)');
+        horizonGlow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+      } else if (altDeg > -3) {
+        horizonGlow.addColorStop(0, 'rgba(251, 146, 60, 0.65)');
+        horizonGlow.addColorStop(0.4, 'rgba(234, 88, 12, 0.32)');
+        horizonGlow.addColorStop(0.75, 'rgba(147, 51, 234, 0.14)');
+        horizonGlow.addColorStop(1, 'rgba(30, 27, 75, 0)');
+      } else {
+        horizonGlow.addColorStop(0, 'rgba(249, 115, 22, 0.45)');
+        horizonGlow.addColorStop(0.45, 'rgba(56, 189, 248, 0.22)');
+        horizonGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      }
+      this.ctx.fillStyle = horizonGlow;
+      this.ctx.beginPath();
+      this.ctx.arc(horizonPt.x, horizonPt.y, 75, 0, PI * 2);
+      this.ctx.fill();
+
+      // 2. Tydelig horisont-snitlinje ved solens azimut, så man kan se hvor solskiven krydser horisonten
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 102, 102, 0.7)' : 'rgba(251, 146, 60, 0.8)';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(horizonPt.x - 28, horizonPt.y);
+      this.ctx.lineTo(horizonPt.x + 28, horizonPt.y);
+      this.ctx.stroke();
+
+      // Lodret pejlelinje fra solskiven under horisonten op til horisontlinjen
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.6)' : 'rgba(251, 146, 60, 0.7)';
+      this.ctx.lineWidth = 1.5;
+      this.ctx.setLineDash([2, 3]);
+      this.ctx.beginPath();
+      this.ctx.moveTo(sunScreenX, sunScreenY);
+      this.ctx.lineTo(horizonPt.x, horizonPt.y);
+      this.ctx.stroke();
+
+      // Retningslinje langs jorden fra motivets base ud mod solskivens horisontpunkt
+      const pBase = project(0, 0, 0);
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.4)' : 'rgba(251, 146, 60, 0.45)';
+      this.ctx.lineWidth = 1.5;
+      this.ctx.setLineDash([4, 4]);
+      this.ctx.beginPath();
+      this.ctx.moveTo(pBase.x, pBase.y);
+      this.ctx.lineTo(horizonPt.x, horizonPt.y);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+
+      // 3. Selve solskiven under horisonten (stiplede konturer + glødende halvt gennemsigtig kerne)
+      this.ctx.fillStyle = isRed ? 'rgba(255, 77, 77, 0.35)' : 'rgba(249, 115, 22, 0.38)';
+      this.ctx.beginPath();
+      this.ctx.arc(sunScreenX, sunScreenY, 11, 0, PI * 2);
+      this.ctx.fill();
+
+      this.ctx.strokeStyle = isRed ? '#ff6666' : '#fb923c';
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([3, 2]);
+      this.ctx.beginPath();
+      this.ctx.arc(sunScreenX, sunScreenY, 11, 0, PI * 2);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+
+      // Lille kerne-prik i midten af solskiven
+      this.ctx.fillStyle = isRed ? '#ff8080' : '#fed7aa';
+      this.ctx.beginPath();
+      this.ctx.arc(sunScreenX, sunScreenY, 3.5, 0, PI * 2);
+      this.ctx.fill();
+
+      // 4. Tydelig mærkat for solskiven under horisonten
+      const isRightSide = sunScreenX > cx;
+      this.ctx.textAlign = isRightSide ? 'right' : 'left';
+      const textX = isRightSide ? sunScreenX - 16 : sunScreenX + 16;
+
+      this.ctx.fillStyle = isRed ? '#ff6666' : '#fb923c';
+      this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
+      this.ctx.fillText(`SOLSKIVE ${altDeg.toFixed(1)}°`, textX, sunScreenY - 3);
+      this.ctx.fillStyle = isRed ? '#c93434' : '#cbd5e1';
+      this.ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
+      this.ctx.fillText(`${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)} (under horisont)`, textX, sunScreenY + 10);
+
+      this.ctx.restore();
+      return;
+    }
+
+    // --- SOLEN OVER HORISONTEN (Normal visning) ---
     const glowRadius = 40;
     const sunGlow = this.ctx.createRadialGradient(sunScreenX, sunScreenY, 4, sunScreenX, sunScreenY, glowRadius);
 
@@ -797,17 +916,40 @@ export class ShadowSimulator {
     this.ctx.restore();
   }
 
-  private drawSubHorizonIndicator(w: number, h: number, altDeg: number): void {
+  private drawSubHorizonIndicator(w: number, h: number, altDeg: number, azDeg: number, project: any): void {
     const isRed = this.isNightRedMode();
     this.ctx.save();
+
+    // Marker også retningen langs horisontkanten selv om natten, hvis kameraet kigger den vej
+    const relAz = ((azDeg - this.camera.azimuth + 540) % 360) - 180;
+    if (Math.abs(relAz) < 95) {
+      const radSunAz = azDeg * rad;
+      const horizonPt = project(sin(radSunAz) * 24, cos(radSunAz) * 24, 0);
+      const hx = Math.max(40, Math.min(w - 40, horizonPt.x));
+      const hy = Math.max(45, Math.min(h * 0.65, horizonPt.y));
+
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.45)' : 'rgba(129, 140, 248, 0.5)';
+      this.ctx.lineWidth = 1.5;
+      this.ctx.setLineDash([2, 2]);
+      this.ctx.beginPath();
+      this.ctx.arc(hx, hy + 12, 8, 0, PI * 2);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+
+      this.ctx.fillStyle = isRed ? '#c93434' : '#818cf8';
+      this.ctx.font = '9px ui-monospace, SFMono-Regular, monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText(`Sol ${azDeg.toFixed(0)}° (${altDeg.toFixed(0)}°)`, hx, hy + 28);
+    }
+
     this.ctx.fillStyle = isRed ? '#ff4d4d' : '#818cf8';
     this.ctx.font = 'bold 12px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
     const badgeText = altDeg < -18 ? 'ASTRONOMISK NAT' : altDeg < -6 ? 'TUSMØRKE' : 'BLÅ TIME';
-    this.ctx.fillText(`☾ ${badgeText} (SOL ${altDeg.toFixed(1)}° UNDER HORISONTEN)`, w * 0.5, 34);
+    this.ctx.fillText(`☾ ${badgeText} (SOL ${altDeg.toFixed(1)}° • ${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)})`, w * 0.5, 34);
     this.ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
     this.ctx.fillStyle = isRed ? '#8b1e1e' : '#64748b';
-    this.ctx.fillText('Ingen hårde direkte skygger – diffus belysning', w * 0.5, 50);
+    this.ctx.fillText('Solskiven er under horisonten – diffus belysning', w * 0.5, 50);
     this.ctx.restore();
   }
 
@@ -988,31 +1130,96 @@ export class ShadowSimulator {
     if (this.simData.sunTimes?.sunrise && this.simData.sunTimes?.sunset) {
       const risePos = AstroCore.getSunPosition(this.simData.sunTimes.sunrise, this.simData.lat, this.simData.lng);
       const setPos = AstroCore.getSunPosition(this.simData.sunTimes.sunset, this.simData.lat, this.simData.lng);
-
-      this.ctx.beginPath();
       const startAngle = (risePos.azimuth - 90) * rad;
       const endAngle = (setPos.azimuth - 90) * rad;
+
+      // Tusmørke-udløbere (blå time / lige før solopgang og efter solnedgang)
+      if (this.simData.sunTimes.civilDawn && this.simData.sunTimes.civilDusk) {
+        const dawnPos = AstroCore.getSunPosition(this.simData.sunTimes.civilDawn, this.simData.lat, this.simData.lng);
+        const duskPos = AstroCore.getSunPosition(this.simData.sunTimes.civilDusk, this.simData.lat, this.simData.lng);
+        const dawnAngle = (dawnPos.azimuth - 90) * rad;
+        const duskAngle = (duskPos.azimuth - 90) * rad;
+
+        this.ctx.save();
+        this.ctx.setLineDash([3, 3]);
+        this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.25)' : 'rgba(56, 189, 248, 0.45)';
+        this.ctx.lineWidth = 2.5;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, r * 0.75, dawnAngle, startAngle, false);
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, r * 0.75, endAngle, duskAngle, false);
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
+
+      // Dagens solbue over horisonten
+      this.ctx.beginPath();
       this.ctx.arc(cx, cy, r * 0.75, startAngle, endAngle, false);
-      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.35)' : 'rgba(245, 158, 11, 0.35)';
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.35)' : 'rgba(245, 158, 11, 0.4)';
       this.ctx.lineWidth = 3;
       this.ctx.stroke();
+
+      // Markér solopgang og solnedgang punkter på solbuen
+      const riseX = cx + cos(startAngle) * (r * 0.75);
+      const riseY = cy + sin(startAngle) * (r * 0.75);
+      const setX = cx + cos(endAngle) * (r * 0.75);
+      const setY = cy + sin(endAngle) * (r * 0.75);
+
+      this.ctx.fillStyle = isRed ? '#ff6666' : '#fbbf24';
+      this.ctx.beginPath();
+      this.ctx.arc(riseX, riseY, 3.5, 0, PI * 2);
+      this.ctx.arc(setX, setY, 3.5, 0, PI * 2);
+      this.ctx.fill();
     }
 
     const sunAngle = (this.simData.sunAzimuth - 90) * rad;
     const sunX = cx + cos(sunAngle) * (r * 0.92);
     const sunY = cy + sin(sunAngle) * (r * 0.92);
+    const isBelowHorizon = this.simData.sunAltitude <= 0;
 
-    this.ctx.strokeStyle = isRed ? '#ff5533' : '#f59e0b';
+    this.ctx.save();
+    if (isBelowHorizon) {
+      this.ctx.setLineDash([4, 4]);
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 85, 51, 0.65)' : this.simData.sunAltitude > -6 ? 'rgba(251, 146, 60, 0.8)' : 'rgba(129, 140, 248, 0.55)';
+    } else {
+      this.ctx.strokeStyle = isRed ? '#ff5533' : '#f59e0b';
+    }
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
     this.ctx.moveTo(cx, cy);
     this.ctx.lineTo(sunX, sunY);
     this.ctx.stroke();
+    this.ctx.setLineDash([]);
 
-    this.ctx.fillStyle = isRed ? '#ff6666' : '#fbbf24';
-    this.ctx.beginPath();
-    this.ctx.arc(sunX, sunY, 8, 0, PI * 2);
-    this.ctx.fill();
+    if (isBelowHorizon) {
+      // Solskiven er under horisonten: tegn tydelig stiplet solskive-markering med glød
+      const subColor = isRed ? '#ff6666' : this.simData.sunAltitude > -6 ? '#fb923c' : '#818cf8';
+      this.ctx.fillStyle = isRed ? 'rgba(255, 77, 77, 0.3)' : this.simData.sunAltitude > -6 ? 'rgba(249, 115, 22, 0.35)' : 'rgba(99, 102, 241, 0.3)';
+      this.ctx.beginPath();
+      this.ctx.arc(sunX, sunY, 9, 0, PI * 2);
+      this.ctx.fill();
+
+      this.ctx.strokeStyle = subColor;
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([3, 2]);
+      this.ctx.beginPath();
+      this.ctx.arc(sunX, sunY, 9, 0, PI * 2);
+      this.ctx.stroke();
+      this.ctx.setLineDash([]);
+
+      this.ctx.fillStyle = subColor;
+      this.ctx.beginPath();
+      this.ctx.arc(sunX, sunY, 3, 0, PI * 2);
+      this.ctx.fill();
+    } else {
+      this.ctx.fillStyle = isRed ? '#ff6666' : '#fbbf24';
+      this.ctx.beginPath();
+      this.ctx.arc(sunX, sunY, 8, 0, PI * 2);
+      this.ctx.fill();
+    }
+    this.ctx.restore();
 
     if (this.simData.hasDirectShadow) {
       const shadowAngle = (this.simData.shadowAzimuth - 90) * rad;

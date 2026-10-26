@@ -366,6 +366,12 @@ export default class WeatherModule implements ModuleInstance {
 
     const currentHour = now.getHours();
 
+    // Beregn solens azimut ved solopgang og solnedgang for direkte visning på kortet
+    const sunrisePos = sun.sunrise ? AstroCore.getSunPosition(sun.sunrise, this.currentLocation.lat, this.currentLocation.lng) : null;
+    const sunsetPos = sun.sunset ? AstroCore.getSunPosition(sun.sunset, this.currentLocation.lat, this.currentLocation.lng) : null;
+    const sunriseCompass = sunrisePos ? `${sunrisePos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunrisePos.azimuth)}` : '';
+    const sunsetCompass = sunsetPos ? `${sunsetPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunsetPos.azimuth)}` : '';
+
     wrap.innerHTML = `
       <!-- OVERORDNET DAG-STATUS BANNER -->
       <div class="weather-day-banner">
@@ -435,14 +441,15 @@ export default class WeatherModule implements ModuleInstance {
           </div>
           <div class="photo-card-time">
             Gylden time: ${TimeService.formatTime(sun.sunrise)} - ${TimeService.formatTime(sun.goldenHourMorning?.end)}
+            ${sunriseCompass ? `<span class="compass-direction-tag" title="Solens kompasretning ved solopgang">🧭 ${sunriseCompass}</span>` : ''}
             ${morningTiming.isPassed ? `<span class="time-passed-tag">Passeret (kl. ${TimeService.formatTime(sun.sunrise)})</span>` : `• ${morningTiming.sub}`}
           </div>
           <div class="photo-card-desc">${morning.text}</div>
           ${renderPassedJump(morningTiming.isPassed, 'Morgenens gyldne time fandt sted i morges. Tjek i morgen?', 'Se daggry i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Skyer: ${morning.clouds.total}% (Lav: ${morning.clouds.low}%, Mellem: ${morning.clouds.mid}%, Høj: ${morning.clouds.high}%)</span>
-            <button class="btn-goto-sol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}">
-              Se lysretning i Sol →
+            <button class="btn-goto-sol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}" title="Åbn Sol-modulet på dette tidspunkt">
+              ☀ Åbn i Sol →
             </button>
           </div>
         </div>
@@ -456,14 +463,15 @@ export default class WeatherModule implements ModuleInstance {
           </div>
           <div class="photo-card-time">
             Gylden time: ${TimeService.formatTime(sun.goldenHourEvening?.start)} - ${TimeService.formatTime(sun.sunset)}
+            ${sunsetCompass ? `<span class="compass-direction-tag" title="Solens kompasretning ved solnedgang">🧭 ${sunsetCompass}</span>` : ''}
             ${eveningTiming.isPassed ? '<span class="time-passed-tag">Passeret i aften</span>' : `• ${eveningTiming.sub}`}
           </div>
           <div class="photo-card-desc">${evening.text}</div>
           ${renderPassedJump(eveningTiming.isPassed, 'Aftenens solnedgang fandt sted tidligere i aften. Tjek i morgen?', 'Se solnedgang i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Skyer: ${evening.clouds.total}% (Lav: ${evening.clouds.low}%, Mellem: ${evening.clouds.mid}%, Høj: ${evening.clouds.high}%)</span>
-            <button class="btn-goto-sol" data-time="${sun.sunset ? sun.sunset.getTime() : day.date.getTime()}">
-              Se lysretning i Sol →
+            <button class="btn-goto-sol" data-time="${sun.sunset ? sun.sunset.getTime() : day.date.getTime()}" title="Åbn Sol-modulet på dette tidspunkt">
+              ☀ Åbn i Sol →
             </button>
           </div>
         </div>

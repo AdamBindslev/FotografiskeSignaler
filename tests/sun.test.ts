@@ -38,11 +38,19 @@ describe('AstroCore - Sol beregninger', () => {
     expect(shadow30.shadowCompass).toBe('V');
   });
 
-  it('Håndterer nat og sol under horisonten korrekt for skygger', () => {
+  it('Håndterer nat og sol under horisonten korrekt for skygger og solskive-beskrivelse', () => {
+    // Dybt tusmørke (-10°)
     const nightShadow = AstroCore.calculateShadow(-10, 350, 1.75);
     expect(nightShadow.hasDirectShadow).toBe(false);
     expect(nightShadow.shadowLength).toBe(Infinity);
     expect(nightShadow.lightPhase.id).toBe('nautical');
+
+    // Lige før solopgang / efter solnedgang (-2.5° ved azimut 110° ØSØ)
+    const twilightRim = AstroCore.calculateShadow(-2.5, 110, 1.75);
+    expect(twilightRim.hasDirectShadow).toBe(false);
+    expect(twilightRim.description).toContain('Solskiven ligger lige under horisonten');
+    expect(twilightRim.description).toContain('110°');
+    expect(twilightRim.description).toContain('ØSØ');
   });
 
   it('Klassificerer fotofaser og farvetemperatur (Kelvin) korrekt', () => {

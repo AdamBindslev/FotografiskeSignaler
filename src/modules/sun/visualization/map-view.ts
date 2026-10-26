@@ -171,23 +171,36 @@ export class MapView {
     const origin: [number, number] = [lat, lng];
     this.marker.setLatLng(origin);
 
-    const isSunUp = sunAltitudeDeg > -0.833;
+    const isVisibleSunOrTwilight = sunAltitudeDeg > -8;
+    const isBelowHorizon = sunAltitudeDeg <= 0;
     const hasShadow = sunAltitudeDeg > 0;
 
-    // 1. SOLVEKTOR: Skal pege MOD solen (hvor solen kommer fra!)
-    if (isSunUp) {
+    // 1. SOLVEKTOR / SOLSKIVE-PEJLING: Skal pege MOD solen (også lige før solopgang og efter solnedgang!)
+    if (isVisibleSunOrTwilight) {
       const sunDistMeters = 350;
       const sunEndpoint = this.calculateDestination(lat, lng, sunDistMeters, sunAzimuthDeg);
       this.sunRayLine.setLatLngs([origin, sunEndpoint]);
-      this.sunRayLine.setStyle({ opacity: 0.95 });
+      this.sunRayLine.setStyle({
+        color: isBelowHorizon ? '#fb923c' : '#f59e0b',
+        dashArray: isBelowHorizon ? '4, 6' : '6, 6',
+        opacity: isBelowHorizon ? 0.85 : 0.95
+      });
 
       this.sunMarker.setLatLng(sunEndpoint);
       this.sunMarker.setOpacity(1);
 
       const compassDir = AstroCore.getCompassDirection(sunAzimuthDeg);
       const sunEl = this.container.querySelector('.fs-map-sun-text');
+      const badgeEl = this.container.querySelector('.fs-map-sun-badge') as HTMLElement | null;
       if (sunEl) {
-        sunEl.textContent = `SOL ${sunAzimuthDeg.toFixed(0)}° ${compassDir}`;
+        const sign = sunAltitudeDeg >= 0 ? '+' : '';
+        sunEl.textContent = isBelowHorizon
+          ? `SOLSKIVE ${sunAzimuthDeg.toFixed(0)}° ${compassDir} (${sign}${sunAltitudeDeg.toFixed(1)}°)`
+          : `SOL ${sunAzimuthDeg.toFixed(0)}° ${compassDir}`;
+      }
+      if (badgeEl) {
+        badgeEl.style.borderStyle = isBelowHorizon ? 'dashed' : 'solid';
+        badgeEl.style.borderColor = isBelowHorizon ? '#fb923c' : '#f59e0b';
       }
     } else {
       this.sunRayLine.setLatLngs([]);
