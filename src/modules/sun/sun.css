@@ -536,6 +536,151 @@ body.theme-night-red .sun-date-box-main svg {
   font-weight: 600;
 }
 
+/* CELESTIAL MODE TOGGLE (SOL / MÅNE) */
+.sun-celestial-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sun-celestial-segmented {
+  display: inline-flex;
+  background: var(--bg-primary);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  gap: 3px;
+}
+
+.sun-celestial-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sun-celestial-btn.active[data-body="sun"] {
+  background: var(--accent-sun-glow);
+  color: var(--accent-sun);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+.sun-celestial-btn.active[data-body="moon"] {
+  background: var(--astro-glow);
+  color: #e9d5ff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+body.theme-night-red .sun-celestial-btn.active[data-body="sun"],
+body.theme-night-red .sun-celestial-btn.active[data-body="moon"] {
+  background: rgba(255, 50, 50, 0.25);
+  color: #ff4d4d;
+  box-shadow: none;
+}
+
+/* MÅNE TEMA VARIATIONER I SOL-MODULET */
+.sun-container.mode-moon .sun-module-badge {
+  color: #c084fc;
+}
+
+.sun-container.mode-moon .sun-hero-card::before {
+  background: var(--accent-exposure-gradient);
+}
+
+.sun-container.mode-moon .sun-grid-metrics .stat-num {
+  color: #e9d5ff;
+}
+
+.sun-container.mode-moon .btn-play-pause {
+  background: #a855f7;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.45);
+}
+
+.sun-container.mode-moon .jump-time {
+  color: #c084fc;
+}
+
+.sun-container.mode-moon .sun-jump-btn:hover,
+.sun-container.mode-moon .sun-jump-btn:active {
+  border-color: #a855f7;
+}
+
+.sun-container.mode-moon .sun-preset-pill.active {
+  background: var(--astro-glow);
+  border-color: #a855f7;
+  color: #e9d5ff;
+}
+
+body.theme-night-red .sun-container.mode-moon .sun-module-badge,
+body.theme-night-red .sun-container.mode-moon .sun-grid-metrics .stat-num,
+body.theme-night-red .sun-container.mode-moon .jump-time {
+  color: #ff4d4d;
+}
+
+/* MÅNE OP/NED DETALJE-RÆKKE I HERO KORT */
+.moon-events-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border-subtle);
+  text-align: center;
+}
+
+.moon-event-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.moon-event-box:hover {
+  border-color: #a855f7;
+  background: var(--bg-surface-elevated);
+}
+
+.moon-event-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.moon-event-time {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+
+.moon-event-dir {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c084fc;
+  font-family: var(--font-mono);
+}
+
+body.theme-night-red .moon-event-dir {
+  color: #ff6666;
+}
+
 /* LEAFLET KORTMARKØRER OG ETIKETTER */
 .fs-leaflet-icon,
 .fs-leaflet-sun-marker,

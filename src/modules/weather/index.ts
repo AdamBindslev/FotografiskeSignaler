@@ -346,22 +346,25 @@ export default class WeatherModule implements ModuleInstance {
       sunDetail1 = `Solopgang i morgen kl. ${TimeService.formatTime(sun.sunrise)} • Solnedgang kl. ${TimeService.formatTime(sun.sunset)}`;
     }
 
-    // Måne detaljer
-    let moonRiseSet = `Op: ${TimeService.formatTime(day.moonTimes?.rise)} • Ned: ${TimeService.formatTime(day.moonTimes?.set)}`;
+    // Måne detaljer med kompasretning for måneopgang og månenedgang
+    const mRiseAz = day.moonTimes?.riseAzimuth;
+    const mSetAz = day.moonTimes?.setAzimuth;
+    const mRiseDirStr = mRiseAz !== null && mRiseAz !== undefined ? ` (${mRiseAz.toFixed(0)}° ${AstroCore.getCompassDirection(mRiseAz)})` : '';
+    const mSetDirStr = mSetAz !== null && mSetAz !== undefined ? ` (${mSetAz.toFixed(0)}° ${AstroCore.getCompassDirection(mSetAz)})` : '';
+
+    let moonRiseSet = `Op: ${TimeService.formatTime(day.moonTimes?.rise)}${mRiseDirStr} • Ned: ${TimeService.formatTime(day.moonTimes?.set)}${mSetDirStr}`;
     if (isToday) {
       const riseDesc = day.moonTimes?.rise
         ? (now > day.moonTimes.rise
-            ? `Op kl. ${TimeService.formatTime(day.moonTimes.rise)} (var for ${TimeService.formatDuration(now.getTime() - day.moonTimes.rise.getTime())} siden)`
-            : `Op i aften kl. ${TimeService.formatTime(day.moonTimes.rise)} (om ${TimeService.formatDuration(day.moonTimes.rise.getTime() - now.getTime())})`)
+            ? `Op kl. ${TimeService.formatTime(day.moonTimes.rise)}${mRiseDirStr}`
+            : `Op kl. ${TimeService.formatTime(day.moonTimes.rise)}${mRiseDirStr} (om ${TimeService.formatDuration(day.moonTimes.rise.getTime() - now.getTime())})`)
         : 'Går ikke op';
       const setDesc = day.moonTimes?.set
-        ? (now > day.moonTimes.set
-            ? `Ned for ${TimeService.formatDuration(now.getTime() - day.moonTimes.set.getTime())} siden`
-            : `Ned kl. ${TimeService.formatTime(day.moonTimes.set)}`)
+        ? `Ned kl. ${TimeService.formatTime(day.moonTimes.set)}${mSetDirStr}`
         : 'Går ikke ned';
       moonRiseSet = `${riseDesc} • ${setDesc}`;
     } else if (isTomorrow) {
-      moonRiseSet = `I morgen: Op kl. ${TimeService.formatTime(day.moonTimes?.rise)} • Ned kl. ${TimeService.formatTime(day.moonTimes?.set)}`;
+      moonRiseSet = `I morgen: Op kl. ${TimeService.formatTime(day.moonTimes?.rise)}${mRiseDirStr} • Ned kl. ${TimeService.formatTime(day.moonTimes?.set)}${mSetDirStr}`;
     }
 
     const currentHour = now.getHours();
@@ -403,8 +406,11 @@ export default class WeatherModule implements ModuleInstance {
 
         <!-- Måne -->
         <div class="astro-sub-card">
-          <div class="astro-sub-title">
-            <span>${moon.icon}</span> Måne
+          <div class="astro-sub-title" style="justify-content: space-between;">
+            <span style="display:inline-flex;align-items:center;gap:4px;"><span>${moon.icon}</span> Måne</span>
+            <button class="btn-goto-sol" data-body="moon" data-time="${day.moonTimes?.rise ? day.moonTimes.rise.getTime() : day.date.getTime()}" style="padding:1px 7px;font-size:10px;" title="Se måneopgang og måneretning i Sol-modulet">
+              Retning →
+            </button>
           </div>
           <div class="astro-sub-val">${moon.fraction}% • ${moon.name}</div>
           <div class="astro-sub-detail">${moonRiseSet}</div>
@@ -491,6 +497,9 @@ export default class WeatherModule implements ModuleInstance {
           ${renderPassedJump(astroTiming.isPassed, 'Astronomisk mørke for denne nat er ovre. Tjek næste nat?', 'Se stjernehimmel i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">${astro.moonImpact}</span>
+            <button class="btn-goto-sol" data-body="moon" data-time="${day.moonTimes?.rise ? day.moonTimes.rise.getTime() : (sun.nightSky?.start ? sun.nightSky.start.getTime() : day.date.getTime())}" title="Se måneretning og nattehimmel i Sol-modulet">
+              ${moon.icon} Se måne i Sol →
+            </button>
           </div>
         </div>
       </div>
@@ -543,14 +552,17 @@ export default class WeatherModule implements ModuleInstance {
       });
     });
 
-    // Handlingsknap: "Se lysretning i Sol"
+    // Handlingsknap: "Se lysretning i Sol" (både for Sol og Måne)
     wrap.querySelectorAll('.btn-goto-sol, .btn-goto-fotosol').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const timeMs = Number((btn as HTMLElement).dataset.time);
+        const el = btn as HTMLElement;
+        const timeMs = Number(el.dataset.time);
+        const body = (el.dataset.body as 'sun' | 'moon') || 'sun';
         const targetDate = new Date(timeMs);
         TimeService.setDate(targetDate);
         Router.navigate('#/sol', {
           date: targetDate,
+          body,
           lat: this.currentLocation.lat,
           lng: this.currentLocation.lng,
           name: this.currentLocation.name

@@ -24,6 +24,12 @@ export interface MoonIllumination {
 export interface MoonTimes {
   rise: Date | null;
   set: Date | null;
+  riseAzimuth?: number | null;
+  setAzimuth?: number | null;
+  transit?: Date | null;
+  transitAltitude?: number | null;
+  alwaysUp?: boolean;
+  alwaysDown?: boolean;
 }
 
 export interface TimeRange {
@@ -340,24 +346,43 @@ export class AstroCore {
     let h0 = this.getMoonPosition(t, lat, lng).altitude * rad - hc;
     let rise: Date | null = null;
     let set: Date | null = null;
+    let ye = 0;
+
+    let maxAlt = -999;
+    let transit: Date | null = null;
 
     for (let i = 1; i <= 24; i += 2) {
-      const h1 = this.getMoonPosition(new Date(t.getTime() + i * 3600000), lat, lng).altitude * rad - hc;
-      const h2 = this.getMoonPosition(new Date(t.getTime() + (i + 1) * 3600000), lat, lng).altitude * rad - hc;
+      const t1 = new Date(t.getTime() + i * 3600000);
+      const t2 = new Date(t.getTime() + (i + 1) * 3600000);
+      const pos1 = this.getMoonPosition(t1, lat, lng);
+      const pos2 = this.getMoonPosition(t2, lat, lng);
+
+      if (pos1.altitude > maxAlt) {
+        maxAlt = pos1.altitude;
+        transit = t1;
+      }
+      if (pos2.altitude > maxAlt) {
+        maxAlt = pos2.altitude;
+        transit = t2;
+      }
+
+      const h1 = pos1.altitude * rad - hc;
+      const h2 = pos2.altitude * rad - hc;
 
       const a = (h0 + h2) / 2 - h1;
       const b = (h2 - h0) / 2;
       const xe = -b / (2 * a);
-      const ye = (a * xe + b) * xe + h1;
+      ye = (a * xe + b) * xe + h1;
       const d = b * b - 4 * a * h1;
       let roots = 0;
 
       if (d >= 0) {
         const dx = Math.sqrt(d) / (Math.abs(a) * 2);
-        const r1 = xe - dx;
+        let r1 = xe - dx;
         const r2 = xe + dx;
         if (Math.abs(r1) <= 1) roots++;
         if (Math.abs(r2) <= 1) roots++;
+        if (r1 < -1) r1 = r2;
 
         if (roots === 1) {
           if (h0 < 0) rise = new Date(t.getTime() + (i + r1) * 3600000);
@@ -371,7 +396,131 @@ export class AstroCore {
       h0 = h2;
     }
 
-    return { rise, set };
+    // Forfin kulminationstidspunkt (transit) omkring højeste time
+    if (transit) {
+      let bestTime = transit;
+      let bestAlt = maxAlt;
+      for (let m = -60; m <= 60; m += 5) {
+        const cand = new Date(transit.getTime() + m * 60000);
+        if (cand.getDate() === t.getDate()) {
+          const p = this.getMoonPosition(cand, lat, lng);
+          if (p.altitude > bestAlt) {
+            bestAlt = p.altitude;
+            bestTime = cand;
+          }
+        }
+      }
+      transit = bestTime;
+      maxAlt = bestAlt;
+    }
+
+    const riseAzimuth = rise ? this.getMoonPosition(rise, lat, lng).azimuth : null;
+    const setAzimuth = set ? this.getMoonPosition(set, lat, lng).azimuth : null;
+
+    const result: MoonTimes = {
+      rise,
+      set,
+      riseAzimuth,
+      setAzimuth,
+      transit,
+      transitAltitude: maxAlt > -900 ? maxAlt : null
+    };
+
+    if (!rise && !set) {
+      if (ye > 0) result.alwaysUp = true;
+      else result.alwaysDown = true;
+    }
+
+    return result;
+  }
+
+  /**
+   * Finder næste fuldmåne eller nymåne fra en given dato
+   */
+  public static getNextMoonPhaseDate(targetType: 'full' | 'new', fromDate: Date = new Date()): Date {
+    const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate(), 12, 0, 0);
+    const targetPhase = targetType === 'full' ? 0.5 : 0.0;
+
+    let bestDate = start;
+    let bestDiff = 999;
+
+    // Søg gennem de næste 31 døgn i trin på 6 timer
+    for (let h = 6; h <= 31 * 24; h += 6) {
+      const cand = new Date(start.getTime() + h * 3600000);
+      const illum = this.getMoonIllumination(cand);
+      let diff = Math.abs(illum.phase - targetPhase);
+      if (targetType === 'new' && illum.phase > 0.5) {
+        diff = 1.0 - illum.phase;
+      }
+
+      // Vi leder efter det lokale minimum (tættest på 0.5 eller 0.0)
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestDate = cand;
+      } else if (bestDiff < 0.04 && diff > bestDiff) {
+        // Vi har netop passeret ekstremum
+        break;
+      }
+    }
+
+    return bestDate;
+  }
+
+  /**
+   * Beregner fotografisk vejledning og lyskvalitet for månen baseret på månehøjde, fase og solhøjde
+   */
+  public static getMoonGuidance(
+    moonAlt: number,
+    moonAz: number,
+    sunAlt: number,
+    illum: MoonIllumination,
+    moonTimes: MoonTimes
+  ): { badge: string; color: string; description: string; cameraTip: string } {
+    const moonDir = this.getCompassDirection(moonAz);
+    const riseStr = moonTimes.rise && moonTimes.riseAzimuth !== null && moonTimes.riseAzimuth !== undefined
+      ? `Op: ${String(moonTimes.rise.getHours()).padStart(2, '0')}:${String(moonTimes.rise.getMinutes()).padStart(2, '0')} (${moonTimes.riseAzimuth.toFixed(0)}° ${this.getCompassDirection(moonTimes.riseAzimuth)})`
+      : 'Går ikke op dette døgn';
+
+    if (moonAlt <= -0.833) {
+      return {
+        badge: 'UNDER HORISONT',
+        color: '#64748b',
+        description: `Månen er under horisonten (${moonAlt.toFixed(1)}°) mod ${moonDir} (${moonAz.toFixed(0)}°). ${riseStr}.`,
+        cameraTip: illum.fraction <= 20
+          ? 'Mørk og månefri himmel – ideelt tidspunkt til Mælkevejen og deep-sky astrofotografering.'
+          : 'Brug tidslinjen eller knappen "Måneopgang" for at se præcis hvor månen bryder horisonten.'
+      };
+    }
+
+    if (moonAlt < 6) {
+      const isTwilight = sunAlt > -8 && sunAlt < 4;
+      return {
+        badge: isTwilight ? 'MÅNE + BLÅ TIME' : 'LAV MÅNE (HORISONT)',
+        color: isTwilight ? '#c084fc' : '#38bdf8',
+        description: `Månen står lavt over horisonten (+${moonAlt.toFixed(1)}°) mod ${moonDir} (${moonAz.toFixed(0)}°). ${
+          isTwilight ? 'Perfekt balance mellem tusmørkelys i landskabet og måneskiven!' : 'Måneillusionen får månen til at syne stor mod bygninger, træer og bakker.'
+        }`,
+        cameraTip: 'Brug teleobjektiv (200–600mm) på afstand af dit motiv i forgrunden for at komprimere perspektivet og gøre månen kæmpestor.'
+      };
+    }
+
+    if (sunAlt > 0) {
+      return {
+        badge: 'DAGMÅNE',
+        color: '#60a5fa',
+        description: `Månen er oppe i dagslys (+${moonAlt.toFixed(1)}° i ${moonDir}, ${illum.fraction}% belyst).`,
+        cameraTip: 'Brug polarisationsfilter til at mørkne den blå himmel, så den hvide måneskive træder tydeligere frem i dagslys.'
+      };
+    }
+
+    return {
+      badge: illum.fraction >= 85 ? 'KRAFTIGT MÅNESKIN' : 'NATMÅNE',
+      color: '#818cf8',
+      description: `${illum.name} (${illum.fraction}% belyst) står i +${moonAlt.toFixed(1)}° højde mod ${moonDir} (${moonAz.toFixed(0)}°).`,
+      cameraTip: illum.fraction >= 75
+        ? 'Måneskinnet oplyser landskabet som en kold sol og kaster bløde nattskygger. Til detaljebilleder af månekratere: brug Looney 11-reglen (f/11, 1/ISO sek).'
+        : 'Halvmåne og månesegl giver smuk sidelys-struktur i kraterne langs måne-terminatoren.'
+    };
   }
 
   public static calculateShadow(altitudeDeg: number, azimuthDeg: number, objectHeightMeters: number = 1.75): ShadowCalculation {

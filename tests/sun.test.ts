@@ -136,4 +136,36 @@ describe('AstroCore - Sol beregninger', () => {
     expect(nextSummer.getMonth()).toBe(5);
     expect(nextSummer.getDate()).toBe(21);
   });
+
+  it('Beregner måneopgang, månenedgang, kompasretninger og næste fuldmåne/nymåne', () => {
+    const testDate = new Date(2026, 9, 26, 12, 0, 0); // 26. oktober 2026
+    const moonTimes = AstroCore.getMoonTimes(testDate, cphLat, cphLng);
+    const moonPos = AstroCore.getMoonPosition(testDate, cphLat, cphLng);
+    const moonIllum = AstroCore.getMoonIllumination(testDate);
+
+    expect(moonIllum.fraction).toBeGreaterThanOrEqual(0);
+    expect(moonIllum.fraction).toBeLessThanOrEqual(100);
+    expect(moonPos.azimuth).toBeGreaterThanOrEqual(0);
+    expect(moonPos.azimuth).toBeLessThan(360);
+
+    if (moonTimes.rise) {
+      expect(moonTimes.riseAzimuth).not.toBeNull();
+      expect(moonTimes.riseAzimuth!).toBeGreaterThanOrEqual(0);
+      expect(moonTimes.riseAzimuth!).toBeLessThan(360);
+    }
+
+    if (moonTimes.set) {
+      expect(moonTimes.setAzimuth).not.toBeNull();
+      expect(moonTimes.setAzimuth!).toBeGreaterThanOrEqual(0);
+      expect(moonTimes.setAzimuth!).toBeLessThan(360);
+    }
+
+    const nextFull = AstroCore.getNextMoonPhaseDate('full', testDate);
+    const fullIllum = AstroCore.getMoonIllumination(nextFull);
+    expect(fullIllum.fraction).toBeGreaterThanOrEqual(95);
+
+    const nextNew = AstroCore.getNextMoonPhaseDate('new', testDate);
+    const newIllum = AstroCore.getMoonIllumination(nextNew);
+    expect(newIllum.fraction).toBeLessThanOrEqual(5);
+  });
 });

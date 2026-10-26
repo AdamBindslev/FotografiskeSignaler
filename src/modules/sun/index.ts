@@ -3,7 +3,7 @@
  */
 
 import { ModuleInstance } from '../../app/ModuleRegistry.ts';
-import { AstroCore, SunTimes, ShadowCalculation, LightPhase } from '../../shared/astronomy/AstroCore.ts';
+import { AstroCore, SunTimes, MoonTimes, MoonIllumination, ShadowCalculation } from '../../shared/astronomy/AstroCore.ts';
 import { LocationService, GeoLocation } from '../../shared/services/LocationService.ts';
 import { TimeService } from '../../shared/services/TimeService.ts';
 import { ShadowSimulator } from './visualization/shadow-sim.ts';
@@ -17,6 +17,7 @@ export default class SunModule implements ModuleInstance {
   private mapView: MapView | null = null;
   private locationBar: LocationBar | null = null;
 
+  private celestialBody: 'sun' | 'moon' = 'sun';
   private activeViewMode: '3d' | 'compass' | 'map' = '3d';
   private subjectType: 'person' | 'tree' | 'building' | 'custom' = 'person';
   private subjectHeight: number = 1.75;
@@ -56,12 +57,23 @@ export default class SunModule implements ModuleInstance {
     let shouldFocusSun = false;
 
     // Håndter kontekst fra f.eks. Vejr
+    if (context?.body === 'moon' || context?.body === 'sun') {
+      this.setCelestialBody(context.body, false);
+      shouldFocusSun = true;
+    }
     if (context?.date) {
       this.currentDate = new Date(context.date);
       shouldFocusSun = true;
     }
     if (context?.params) {
       const p = context.params as URLSearchParams;
+      if (p.has('body')) {
+        const b = p.get('body');
+        if (b === 'moon' || b === 'sun') {
+          this.setCelestialBody(b, false);
+          shouldFocusSun = true;
+        }
+      }
       if (p.has('date')) {
         const dStr = p.get('date')!;
         const parsed = TimeService.parseIsoDate(dStr);
@@ -138,20 +150,18 @@ export default class SunModule implements ModuleInstance {
     const minutesOfDay = this.currentDate.getHours() * 60 + this.currentDate.getMinutes();
 
     this.container.innerHTML = `
-      <div class="sun-container">
-        <!-- Modul header -->
+      <div class="sun-container ${this.celestialBody === 'moon' ? 'mode-moon' : ''}" id="sunModuleRoot">
+        <!-- Modul header med [☀️ Sol | 🌕 Måne] tilstandsknap -->
         <div class="sun-header">
-          <div class="sun-module-badge">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-            </svg>
-            <span>Sol • Sol & Skygge</span>
+          <div class="sun-celestial-segmented" role="tablist" aria-label="Vælg himmellegeme">
+            <button class="sun-celestial-btn ${this.celestialBody === 'sun' ? 'active' : ''}" data-body="sun" id="btnBodySun" role="tab" aria-selected="${this.celestialBody === 'sun'}">
+              <span>☀️</span>
+              <span>Sol</span>
+            </button>
+            <button class="sun-celestial-btn ${this.celestialBody === 'moon' ? 'active' : ''}" data-body="moon" id="btnBodyMoon" role="tab" aria-selected="${this.celestialBody === 'moon'}">
+              <span id="btnBodyMoonIcon">🌕</span>
+              <span>Måne</span>
+            </button>
           </div>
           <span class="fs-badge badge-sun" id="sunPhaseHeaderBadge">Gylden time</span>
         </div>
@@ -174,16 +184,35 @@ export default class SunModule implements ModuleInstance {
 
           <div class="sun-grid-metrics">
             <div class="stat-item">
-              <span class="stat-label">Solhøjde</span>
+              <span class="stat-label" id="lblMetric1">Solhøjde</span>
               <span class="stat-num" id="sunAltitudeVal">+0.0°</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Solretning</span>
+              <span class="stat-label" id="lblMetric2">Solretning</span>
               <span class="stat-num" id="sunAzimuthVal">180° S</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Skyggelængde</span>
+              <span class="stat-label" id="lblMetric3">Skyggelængde</span>
               <span class="stat-num" id="sunShadowLengthVal">0,0 m</span>
+            </div>
+          </div>
+
+          <!-- Måne opgang / kulmination / nedgang med kompasretning (vises i Måne-tilstand) -->
+          <div class="moon-events-strip" id="moonEventsStrip" style="display: ${this.celestialBody === 'moon' ? 'grid' : 'none'};">
+            <div class="moon-event-box" id="boxMoonRise" title="Tryk for at hoppe til måneopgang">
+              <span class="moon-event-label">↑ Måneopgang</span>
+              <span class="moon-event-time" id="moonRiseTimeVal">--:--</span>
+              <span class="moon-event-dir" id="moonRiseDirVal">--°</span>
+            </div>
+            <div class="moon-event-box" id="boxMoonTransit" title="Tryk for at hoppe til månens højeste punkt">
+              <span class="moon-event-label"> culminating • Top</span>
+              <span class="moon-event-time" id="moonTransitTimeVal">--:--</span>
+              <span class="moon-event-dir" id="moonTransitAltVal">--°</span>
+            </div>
+            <div class="moon-event-box" id="boxMoonSet" title="Tryk for at hoppe til månenedgang">
+              <span class="moon-event-label">↓ Månenedgang</span>
+              <span class="moon-event-time" id="moonSetTimeVal">--:--</span>
+              <span class="moon-event-dir" id="moonSetDirVal">--°</span>
             </div>
           </div>
         </div>
@@ -266,6 +295,8 @@ export default class SunModule implements ModuleInstance {
               <button class="sun-preset-pill active" data-preset="today">I dag</button>
               <button class="sun-preset-pill" data-preset="tomorrow">I morgen</button>
               <button class="sun-preset-pill" data-preset="day-after">I overmorgen</button>
+              <button class="sun-preset-pill" data-preset="next-full-moon" title="Hop til næste fuldmåne">🌕 Næste fuldmåne</button>
+              <button class="sun-preset-pill" data-preset="next-new-moon" title="Hop til næste nymåne (mørk himmel)">🌑 Næste nymåne</button>
               <button class="sun-preset-pill" data-preset="week">+7 dage</button>
               <button class="sun-preset-pill" data-preset="month">+30 dage</button>
               <button class="sun-preset-pill" data-preset="summer-solstice" title="Sommersolhverv (21. jun)">☀️ Sommersolhverv</button>
@@ -364,7 +395,58 @@ export default class SunModule implements ModuleInstance {
     }
   }
 
+  private setCelestialBody(body: 'sun' | 'moon', updateAfter: boolean = true): void {
+    this.celestialBody = body;
+    const root = this.container.querySelector('#sunModuleRoot');
+    const btnSun = this.container.querySelector('#btnBodySun');
+    const btnMoon = this.container.querySelector('#btnBodyMoon');
+    const moonStrip = this.container.querySelector('#moonEventsStrip') as HTMLElement | null;
+
+    root?.classList.toggle('mode-moon', body === 'moon');
+    btnSun?.classList.toggle('active', body === 'sun');
+    btnSun?.setAttribute('aria-selected', String(body === 'sun'));
+    btnMoon?.classList.toggle('active', body === 'moon');
+    btnMoon?.setAttribute('aria-selected', String(body === 'moon'));
+
+    if (moonStrip) {
+      moonStrip.style.display = body === 'moon' ? 'grid' : 'none';
+    }
+
+    if (updateAfter) {
+      this.updateCalculations();
+      this.simulator?.resetCamera('default');
+    }
+  }
+
   private attachEventListeners(): void {
+    // Skift mellem Sol og Måne ([☀️ Sol | 🌕 Måne])
+    this.container.querySelector('#btnBodySun')?.addEventListener('click', () => {
+      this.setCelestialBody('sun', true);
+    });
+    this.container.querySelector('#btnBodyMoon')?.addEventListener('click', () => {
+      this.setCelestialBody('moon', true);
+    });
+
+    // Klik på måneopgang / kulmination / månenedgang i Hero-kortet hopper direkte til tidspunktet
+    const jumpToDatasetTime = (elId: string) => {
+      const el = this.container.querySelector(elId) as HTMLElement | null;
+      el?.addEventListener('click', () => {
+        const ts = Number(el.dataset.time || 0);
+        if (ts > 0) {
+          this.pausePlayback();
+          this.currentDate = new Date(ts);
+          const minutes = this.currentDate.getHours() * 60 + this.currentDate.getMinutes();
+          const slider = this.container.querySelector('#sunTimeSlider') as HTMLInputElement;
+          if (slider) slider.value = String(minutes);
+          this.updateCalculations();
+          this.simulator?.resetCamera('default');
+        }
+      });
+    };
+    jumpToDatasetTime('#boxMoonRise');
+    jumpToDatasetTime('#boxMoonTransit');
+    jumpToDatasetTime('#boxMoonSet');
+
     // Mode skift (3D / Kompas / Kort)
     const btn3D = this.container.querySelector('#btnMode3D');
     const btnCompass = this.container.querySelector('#btnModeCompass');
@@ -487,6 +569,12 @@ export default class SunModule implements ModuleInstance {
             break;
           case 'day-after':
             target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
+            break;
+          case 'next-full-moon':
+            target = AstroCore.getNextMoonPhaseDate('full', now);
+            break;
+          case 'next-new-moon':
+            target = AstroCore.getNextMoonPhaseDate('new', now);
             break;
           case 'week':
             target = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), this.currentDate.getDate() + 7);
@@ -652,7 +740,7 @@ export default class SunModule implements ModuleInstance {
     this.updateCalculations();
   }
 
-  private updateDateDisplay(): void {
+  private updateDateDisplay(moonIllum?: MoonIllumination): void {
     const isToday = TimeService.isToday(this.currentDate);
     const relText = TimeService.formatRelativeDay(this.currentDate);
     const formattedDanish = TimeService.formatDateDanish(this.currentDate);
@@ -665,7 +753,8 @@ export default class SunModule implements ModuleInstance {
       if (isToday) {
         heroDateEl.textContent = formattedDanish;
       } else {
-        heroDateEl.innerHTML = `<span style="color: var(--accent-sun); font-weight: 700;">📅 Plan: ${TimeService.formatShortDate(this.currentDate)} (${relText})</span>`;
+        const accentColor = this.celestialBody === 'moon' ? '#c084fc' : 'var(--accent-sun)';
+        heroDateEl.innerHTML = `<span style="color: ${accentColor}; font-weight: 700;">📅 Plan: ${TimeService.formatShortDate(this.currentDate)} (${relText})</span>`;
       }
     }
 
@@ -679,11 +768,14 @@ export default class SunModule implements ModuleInstance {
       mainLabel.textContent = `${formattedDanish} ${fullYear}`;
     }
     if (subLabel) {
-      subLabel.textContent = isToday ? 'Tryk for kalender • Dags dato' : `Tryk for kalender • ${relText}`;
+      const moonHint = moonIllum ? ` • ${moonIllum.icon} ${moonIllum.fraction}%` : '';
+      subLabel.textContent = isToday
+        ? `Tryk for kalender • Dags dato${moonHint}`
+        : `Tryk for kalender • ${relText}${moonHint}`;
     }
     if (statusBadge) {
       statusBadge.textContent = isToday ? 'I dag' : relText;
-      statusBadge.className = isToday ? 'fs-badge' : 'fs-badge badge-sun';
+      statusBadge.className = isToday ? 'fs-badge' : this.celestialBody === 'moon' ? 'fs-badge badge-exposure' : 'fs-badge badge-sun';
     }
     if (dateInput && dateInput.value !== isoDate) {
       dateInput.value = isoDate;
@@ -697,6 +789,8 @@ export default class SunModule implements ModuleInstance {
         let isActive = false;
         if (p === 'today' && isToday) isActive = true;
         else if (p === 'tomorrow' && TimeService.isTomorrow(this.currentDate)) isActive = true;
+        else if (p === 'next-full-moon' && moonIllum && moonIllum.phase >= 0.47 && moonIllum.phase <= 0.53 && !isToday) isActive = true;
+        else if (p === 'next-new-moon' && moonIllum && (moonIllum.phase < 0.03 || moonIllum.phase > 0.97) && !isToday) isActive = true;
         else if (p === 'summer-solstice' && this.currentDate.getMonth() === 5 && this.currentDate.getDate() === 21) isActive = true;
         else if (p === 'autumn-equinox' && this.currentDate.getMonth() === 8 && this.currentDate.getDate() === 22) isActive = true;
         else if (p === 'winter-solstice' && this.currentDate.getMonth() === 11 && this.currentDate.getDate() === 21) isActive = true;
@@ -719,11 +813,21 @@ export default class SunModule implements ModuleInstance {
 
     const sunPos = AstroCore.getSunPosition(this.currentDate, lat, lng);
     const sunTimes = AstroCore.getSunTimes(this.currentDate, lat, lng);
-    const shadowCalc: ShadowCalculation = AstroCore.calculateShadow(sunPos.altitude, sunPos.azimuth, this.subjectHeight);
-    const kelvin = AstroCore.getEstimatedKelvin(sunPos.altitude);
+    const moonPos = AstroCore.getMoonPosition(this.currentDate, lat, lng);
+    const moonTimes = AstroCore.getMoonTimes(this.currentDate, lat, lng);
+    const moonIllum = AstroCore.getMoonIllumination(this.currentDate);
+
+    const isMoon = this.celestialBody === 'moon';
+
+    // Opdater måne-ikon på knappen øverst så man altid kan se fasen
+    const btnMoonIcon = this.container.querySelector('#btnBodyMoonIcon');
+    if (btnMoonIcon) btnMoonIcon.textContent = moonIllum.icon;
 
     // Opdater tal i interfacet
     const timeEl = this.container.querySelector('#sunTimeDisplay');
+    const lblMetric1 = this.container.querySelector('#lblMetric1');
+    const lblMetric2 = this.container.querySelector('#lblMetric2');
+    const lblMetric3 = this.container.querySelector('#lblMetric3');
     const altEl = this.container.querySelector('#sunAltitudeVal');
     const azEl = this.container.querySelector('#sunAzimuthVal');
     const shadowEl = this.container.querySelector('#sunShadowLengthVal');
@@ -733,53 +837,200 @@ export default class SunModule implements ModuleInstance {
     const tipEl = this.container.querySelector('#sunShadowTip');
 
     if (timeEl) timeEl.textContent = TimeService.formatTime(this.currentDate);
-    this.updateDateDisplay();
-    if (altEl) altEl.textContent = `${sunPos.altitude >= 0 ? '+' : ''}${sunPos.altitude.toFixed(1)}°`;
-    if (azEl) azEl.textContent = `${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}`;
-    if (shadowEl) shadowEl.textContent = shadowCalc.hasDirectShadow ? `${shadowCalc.shadowLength.toFixed(1).replace('.', ',')} m` : 'Ingen (Diffust)';
-    if (kelvinEl) kelvinEl.textContent = `${kelvin.kelvin}K (${kelvin.label})`;
+    this.updateDateDisplay(moonIllum);
 
-    if (phaseBadge) {
-      phaseBadge.textContent = shadowCalc.lightPhase.badge;
-      phaseBadge.setAttribute('style', `background: ${shadowCalc.lightPhase.color}33; color: ${shadowCalc.lightPhase.color};`);
-    }
-    if (headerBadge) {
-      headerBadge.textContent = shadowCalc.lightPhase.name;
-    }
-    if (tipEl) {
-      tipEl.textContent = `${shadowCalc.description} ${shadowCalc.cameraTip}`;
+    if (!isMoon) {
+      const shadowCalc: ShadowCalculation = AstroCore.calculateShadow(sunPos.altitude, sunPos.azimuth, this.subjectHeight);
+      const kelvin = AstroCore.getEstimatedKelvin(sunPos.altitude);
+
+      if (lblMetric1) lblMetric1.textContent = 'Solhøjde';
+      if (lblMetric2) lblMetric2.textContent = 'Solretning';
+      if (lblMetric3) lblMetric3.textContent = 'Skyggelængde';
+
+      if (altEl) altEl.textContent = `${sunPos.altitude >= 0 ? '+' : ''}${sunPos.altitude.toFixed(1)}°`;
+      if (azEl) azEl.textContent = `${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}`;
+      if (shadowEl) shadowEl.textContent = shadowCalc.hasDirectShadow ? `${shadowCalc.shadowLength.toFixed(1).replace('.', ',')} m` : 'Ingen (Diffust)';
+      if (kelvinEl) kelvinEl.textContent = `${kelvin.kelvin}K (${kelvin.label})`;
+
+      if (phaseBadge) {
+        phaseBadge.textContent = shadowCalc.lightPhase.badge;
+        phaseBadge.setAttribute('style', `background: ${shadowCalc.lightPhase.color}33; color: ${shadowCalc.lightPhase.color};`);
+      }
+      if (headerBadge) {
+        headerBadge.textContent = shadowCalc.lightPhase.name;
+        headerBadge.className = 'fs-badge badge-sun';
+      }
+      if (tipEl) {
+        tipEl.textContent = `${shadowCalc.description} ${shadowCalc.cameraTip}`;
+      }
+
+      this.simulator?.update(sunPos.altitude, sunPos.azimuth, this.subjectHeight, {
+        subjectType: this.subjectType,
+        sunTimes,
+        moonTimes,
+        moonIllum,
+        celestialBody: 'sun',
+        lat,
+        lng
+      });
+
+      if (this.activeViewMode === 'map' && this.mapView) {
+        this.mapView.update(
+          lat,
+          lng,
+          sunPos.altitude,
+          sunPos.azimuth,
+          shadowCalc.shadowAzimuth,
+          shadowCalc.shadowLength,
+          'sun'
+        );
+      }
+    } else {
+      // MÅNE-TILSTAND
+      const moonGuidance = AstroCore.getMoonGuidance(moonPos.altitude, moonPos.azimuth, sunPos.altitude, moonIllum, moonTimes);
+      const hasMoonShadow = moonPos.altitude > 0 && sunPos.altitude <= -4 && moonIllum.fraction >= 25;
+      const moonShadowAz = (moonPos.azimuth + 180) % 360;
+      const moonShadowLen = hasMoonShadow ? this.subjectHeight / Math.tan((moonPos.altitude * Math.PI) / 180) : Infinity;
+
+      if (lblMetric1) lblMetric1.textContent = 'Månehøjde';
+      if (lblMetric2) lblMetric2.textContent = 'Måneretning';
+      if (lblMetric3) lblMetric3.textContent = 'Månefase & Lys';
+
+      if (altEl) altEl.textContent = `${moonPos.altitude >= 0 ? '+' : ''}${moonPos.altitude.toFixed(1)}°`;
+      if (azEl) azEl.textContent = `${moonPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(moonPos.azimuth)}`;
+      if (shadowEl) shadowEl.textContent = `${moonIllum.icon} ${moonIllum.fraction}%`;
+      if (kelvinEl) {
+        kelvinEl.textContent = hasMoonShadow
+          ? `Måneskygge: ${moonShadowLen.toFixed(1).replace('.', ',')} m mod ${AstroCore.getCompassDirection(moonShadowAz)}`
+          : `${moonIllum.name} (${moonIllum.fraction}% belyst)`;
+      }
+
+      if (phaseBadge) {
+        phaseBadge.textContent = moonGuidance.badge;
+        phaseBadge.setAttribute('style', `background: ${moonGuidance.color}33; color: ${moonGuidance.color};`);
+      }
+      if (headerBadge) {
+        headerBadge.textContent = `${moonIllum.icon} ${moonIllum.name}`;
+        headerBadge.className = 'fs-badge badge-exposure';
+      }
+      if (tipEl) {
+        tipEl.textContent = `${moonGuidance.description} ${moonGuidance.cameraTip}`;
+      }
+
+      // Opdater Måneopgang / Kulmination / Månenedgang bokse med kompasretninger
+      const riseTimeEl = this.container.querySelector('#moonRiseTimeVal');
+      const riseDirEl = this.container.querySelector('#moonRiseDirVal');
+      const boxRise = this.container.querySelector('#boxMoonRise') as HTMLElement | null;
+
+      if (moonTimes.rise && moonTimes.riseAzimuth !== null && moonTimes.riseAzimuth !== undefined) {
+        if (riseTimeEl) riseTimeEl.textContent = TimeService.formatTime(moonTimes.rise);
+        if (riseDirEl) riseDirEl.textContent = `${moonTimes.riseAzimuth.toFixed(0)}° ${AstroCore.getCompassDirection(moonTimes.riseAzimuth)}`;
+        if (boxRise) boxRise.dataset.time = String(moonTimes.rise.getTime());
+      } else {
+        if (riseTimeEl) riseTimeEl.textContent = '--:--';
+        if (riseDirEl) riseDirEl.textContent = moonTimes.alwaysUp ? 'Over horisont' : 'Går ikke op';
+        if (boxRise) boxRise.dataset.time = '0';
+      }
+
+      const transitTimeEl = this.container.querySelector('#moonTransitTimeVal');
+      const transitAltEl = this.container.querySelector('#moonTransitAltVal');
+      const boxTransit = this.container.querySelector('#boxMoonTransit') as HTMLElement | null;
+      if (moonTimes.transit && moonTimes.transitAltitude !== null && moonTimes.transitAltitude !== undefined) {
+        if (transitTimeEl) transitTimeEl.textContent = TimeService.formatTime(moonTimes.transit);
+        if (transitAltEl) transitAltEl.textContent = `${moonTimes.transitAltitude >= 0 ? '+' : ''}${moonTimes.transitAltitude.toFixed(1)}° Syd`;
+        if (boxTransit) boxTransit.dataset.time = String(moonTimes.transit.getTime());
+      } else {
+        if (transitTimeEl) transitTimeEl.textContent = '--:--';
+        if (transitAltEl) transitAltEl.textContent = '--°';
+        if (boxTransit) boxTransit.dataset.time = '0';
+      }
+
+      const setTimeEl = this.container.querySelector('#moonSetTimeVal');
+      const setDirEl = this.container.querySelector('#moonSetDirVal');
+      const boxSet = this.container.querySelector('#boxMoonSet') as HTMLElement | null;
+      if (moonTimes.set && moonTimes.setAzimuth !== null && moonTimes.setAzimuth !== undefined) {
+        if (setTimeEl) setTimeEl.textContent = TimeService.formatTime(moonTimes.set);
+        if (setDirEl) setDirEl.textContent = `${moonTimes.setAzimuth.toFixed(0)}° ${AstroCore.getCompassDirection(moonTimes.setAzimuth)}`;
+        if (boxSet) boxSet.dataset.time = String(moonTimes.set.getTime());
+      } else {
+        if (setTimeEl) setTimeEl.textContent = '--:--';
+        if (setDirEl) setDirEl.textContent = moonTimes.alwaysDown ? 'Under horisont' : 'Går ikke ned';
+        if (boxSet) boxSet.dataset.time = '0';
+      }
+
+      this.simulator?.update(moonPos.altitude, moonPos.azimuth, this.subjectHeight, {
+        subjectType: this.subjectType,
+        sunTimes,
+        moonTimes,
+        moonIllum,
+        celestialBody: 'moon',
+        hasDirectShadowOverride: hasMoonShadow,
+        diffusionFactor: 0.7,
+        lat,
+        lng
+      });
+
+      if (this.activeViewMode === 'map' && this.mapView) {
+        this.mapView.update(
+          lat,
+          lng,
+          moonPos.altitude,
+          moonPos.azimuth,
+          moonShadowAz,
+          moonShadowLen,
+          'moon',
+          {
+            icon: moonIllum.icon,
+            riseAzimuth: moonTimes.riseAzimuth,
+            setAzimuth: moonTimes.setAzimuth,
+            hasMoonShadow
+          }
+        );
+      }
     }
 
-    // Opdater 3D Canvas
-    this.simulator?.update(sunPos.altitude, sunPos.azimuth, this.subjectHeight, {
-      subjectType: this.subjectType,
-      sunTimes,
-      lat,
-      lng
-    });
-
-    // Opdater Leaflet kort
-    if (this.activeViewMode === 'map' && this.mapView) {
-      this.mapView.update(lat, lng, sunPos.altitude, sunPos.azimuth, shadowCalc.shadowAzimuth, shadowCalc.shadowLength);
-    }
-
-    // Render hurtige solspring pills
-    this.renderQuickJumps(sunTimes);
+    // Render hurtige spring pills (tilpasset Sol eller Måne)
+    this.renderQuickJumps(sunTimes, moonTimes);
   }
 
-  private renderQuickJumps(times: SunTimes): void {
+  private renderQuickJumps(times: SunTimes, moonTimes: MoonTimes): void {
     const jumpsWrap = this.container.querySelector('#sunQuickJumps');
     if (!jumpsWrap) return;
 
-    const events = [
-      { name: 'Blå time (morgen)', time: times.blueHourMorning?.start },
-      { name: 'Solopgang', time: times.sunrise },
-      { name: 'Gylden time (morgen)', time: times.goldenHourMorning?.end },
-      { name: 'Solmiddag', time: times.solarNoon },
-      { name: 'Gylden time (aften)', time: times.goldenHourEvening?.start },
-      { name: 'Solnedgang', time: times.sunset },
-      { name: 'Blå time (aften)', time: times.blueHourEvening?.end }
-    ].filter((e) => e.time !== null && e.time !== undefined);
+    let events: Array<{ name: string; time: Date | null | undefined }> = [];
+
+    if (this.celestialBody === 'moon') {
+      const riseDir =
+        moonTimes.riseAzimuth !== null && moonTimes.riseAzimuth !== undefined
+          ? ` (${moonTimes.riseAzimuth.toFixed(0)}° ${AstroCore.getCompassDirection(moonTimes.riseAzimuth)})`
+          : '';
+      const setDir =
+        moonTimes.setAzimuth !== null && moonTimes.setAzimuth !== undefined
+          ? ` (${moonTimes.setAzimuth.toFixed(0)}° ${AstroCore.getCompassDirection(moonTimes.setAzimuth)})`
+          : '';
+
+      events = [
+        { name: `↑ Måneopgang${riseDir}`, time: moonTimes.rise },
+        { name: 'Måne højest', time: moonTimes.transit },
+        { name: `↓ Månenedgang${setDir}`, time: moonTimes.set },
+        { name: 'Solnedgang', time: times.sunset },
+        { name: 'Blå time (aften)', time: times.blueHourEvening?.end },
+        { name: 'Solopgang', time: times.sunrise }
+      ]
+        .filter((e) => e.time !== null && e.time !== undefined)
+        .sort((a, b) => (a.time as Date).getTime() - (b.time as Date).getTime());
+    } else {
+      events = [
+        { name: 'Blå time (morgen)', time: times.blueHourMorning?.start },
+        { name: 'Solopgang', time: times.sunrise },
+        { name: 'Gylden time (morgen)', time: times.goldenHourMorning?.end },
+        { name: 'Solmiddag', time: times.solarNoon },
+        { name: 'Gylden time (aften)', time: times.goldenHourEvening?.start },
+        { name: 'Solnedgang', time: times.sunset },
+        { name: 'Blå time (aften)', time: times.blueHourEvening?.end },
+        { name: '🌕 Måneopgang', time: moonTimes.rise }
+      ].filter((e) => e.time !== null && e.time !== undefined);
+    }
 
     jumpsWrap.innerHTML = events
       .map(
