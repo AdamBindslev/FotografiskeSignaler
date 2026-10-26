@@ -6,6 +6,7 @@ export interface AppSettings {
   nightMode: boolean;
   units: 'metric' | 'imperial';
   lastModule: string;
+  installBannerDismissed?: boolean;
   version: number;
 }
 

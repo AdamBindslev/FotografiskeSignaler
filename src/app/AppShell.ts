@@ -5,6 +5,7 @@
 import { ModuleRegistry, AppModule, ModuleInstance } from './ModuleRegistry.ts';
 import { Router, RouteMatch } from './Router.ts';
 import { StorageService } from '../shared/services/StorageService.ts';
+import { InstallBanner } from '../shared/components/InstallBanner.ts';
 
 export class AppShell {
   private static rootEl: HTMLElement;
@@ -24,6 +25,7 @@ export class AppShell {
     this.initNightMode();
     this.setupNavigation();
     this.setupPwaUpdateListener();
+    InstallBanner.init();
   }
 
   private static renderShell(): void {
