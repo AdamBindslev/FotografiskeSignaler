@@ -1,4 +1,4 @@
-import{S as g,R as t}from"./index-DUhnAYMS.js";import{L as s,A as n,T as o,a as f}from"./LocationBar-CZCNmsGQ.js";class x{container;currentLocation=s.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=s.getLocation(),this.render(),this.unsubLocation=s.subscribe(r=>{this.currentLocation=r,this.render()})}onActivate(){this.currentLocation=s.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}static escapeHtml(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}render(){const e=g.getSettings(),r=new Date,i=n.getSunPosition(r,this.currentLocation.lat,this.currentLocation.lng),a=n.getSunTimes(r,this.currentLocation.lat,this.currentLocation.lng),l=n.getLightPhase(i.altitude),c=e.lastModule!=="home"?e.lastModule:null,d=x.escapeHtml(this.currentLocation.name);this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
+import{S as g,R as t}from"./index-DvagEI1d.js";import{L as s,A as i,T as o,a as f}from"./LocationBar-CZCNmsGQ.js";class x{container;currentLocation=s.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=s.getLocation(),this.render(),this.unsubLocation=s.subscribe(r=>{this.currentLocation=r,this.render()})}onActivate(){this.currentLocation=s.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}static escapeHtml(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}render(){const e=g.getSettings(),r=new Date,n=i.getSunPosition(r,this.currentLocation.lat,this.currentLocation.lng),a=i.getSunTimes(r,this.currentLocation.lat,this.currentLocation.lng),l=i.getLightPhase(n.altitude),c=e.lastModule!=="home"?e.lastModule:null,d=x.escapeHtml(this.currentLocation.name);this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
         <!-- VELKOMST HERO -->
         <div class="fs-card" style="padding: var(--space-5); text-align: center; border-color: var(--border-highlight); background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(15, 18, 23, 0.9) 100%);">
@@ -16,7 +16,7 @@ import{S as g,R as t}from"./index-DUhnAYMS.js";import{L as s,A as n,T as o,a as 
           <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 12px; flex-wrap: wrap;">
             <span style="color: ${l.color}; font-weight: 700;">● ${l.name}</span>
             <span>•</span>
-            <span>Sol ${i.altitude>=0?"+":""}${i.altitude.toFixed(0)}° (${i.azimuth.toFixed(0)}° ${n.getCompassDirection(i.azimuth)})</span>
+            <span>Sol ${n.altitude>=0?"+":""}${n.altitude.toFixed(0)}° (${n.azimuth.toFixed(0)}° ${i.getCompassDirection(n.azimuth)})</span>
             <span>•</span>
             <span>Solnedgang: ${o.formatTime(a.sunset)}</span>
           </div>
@@ -67,7 +67,7 @@ import{S as g,R as t}from"./index-DUhnAYMS.js";import{L as s,A as n,T as o,a as 
           </div>
         </div>
 
-        <!-- MODUL 2: SOL -->
+        <!-- MODUL 2: SOL/MÅNE -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-sun); cursor: pointer;" id="cardGoSun">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -83,18 +83,18 @@ import{S as g,R as t}from"./index-DUhnAYMS.js";import{L as s,A as n,T as o,a as 
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Sol</h2>
-                <span style="font-size: 11px; color: var(--accent-sun); font-weight: 600; text-transform: uppercase;">Sol, Skygge & Lysretning</span>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Sol/Måne</h2>
+                <span style="font-size: 11px; color: var(--accent-sun); font-weight: 600; text-transform: uppercase;">Sol, Måne, Skygge & Lysretning</span>
               </div>
             </div>
-            <span class="fs-badge badge-sun">3D & Kort</span>
+            <span class="fs-badge badge-sun">3D, Kompas & Kort</span>
           </div>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
-            Interaktiv 3D-søger og satellitkort for ${d}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
+            Interaktiv 3D-søger, live kompas og satellitkort for ${d}. Simulerer sol- og måneretning, op-/nedgangsvinkler, skyggelængde og farvetemperatur.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Aktuel retning: ${i.azimuth.toFixed(0)}° ${n.getCompassDirection(i.azimuth)}</span>
-            <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol →</span>
+            <span>Aktuel solretning: ${n.azimuth.toFixed(0)}° ${i.getCompassDirection(n.azimuth)}</span>
+            <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol/Måne →</span>
           </div>
         </div>
 
@@ -163,4 +163,4 @@ import{S as g,R as t}from"./index-DUhnAYMS.js";import{L as s,A as n,T as o,a as 
           Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
         </div>
       </div>
-    `;const p=this.container.querySelector("#homeLocationMount");p&&(this.locationBar=new f({container:p,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{t.navigate("#/vejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{t.navigate("#/sol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{t.navigate("#/dof")}),this.container.querySelector("#cardGoExposure")?.addEventListener("click",()=>{t.navigate("#/eksponering")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=g.getSettings();e.lastModule==="weather"?t.navigate("#/vejr"):e.lastModule==="sun"?t.navigate("#/sol"):e.lastModule==="dof"?t.navigate("#/dof"):e.lastModule==="exposure"&&t.navigate("#/eksponering")})}getModuleName(e){return e==="weather"?"Vejr":e==="sun"?"Sol":e==="dof"?"DOF":e==="exposure"?"Eksponering":e}}export{x as default};
+    `;const p=this.container.querySelector("#homeLocationMount");p&&(this.locationBar=new f({container:p,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{t.navigate("#/vejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{t.navigate("#/sol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{t.navigate("#/dof")}),this.container.querySelector("#cardGoExposure")?.addEventListener("click",()=>{t.navigate("#/eksponering")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=g.getSettings();e.lastModule==="weather"?t.navigate("#/vejr"):e.lastModule==="sun"?t.navigate("#/sol"):e.lastModule==="dof"?t.navigate("#/dof"):e.lastModule==="exposure"&&t.navigate("#/eksponering")})}getModuleName(e){return e==="weather"?"Vejr":e==="sun"?"Sol/Måne":e==="dof"?"DOF":e==="exposure"?"Eksponering":e}}export{x as default};

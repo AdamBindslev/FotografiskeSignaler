@@ -52,12 +52,12 @@ ModuleRegistry.register({
 
 ModuleRegistry.register({
   id: 'sun',
-  name: 'Sol',
-  shortName: 'Sol',
-  description: 'Sol, skygge og lysretning',
+  name: 'Sol/Måne',
+  shortName: 'Sol/Måne',
+  description: 'Sol, måne, skygge og lysretning',
   accentColor: '#f59e0b',
   route: '#/sol',
-  aliases: ['#/fotosol'],
+  aliases: ['#/fotosol', '#/maane', '#/sol-maane'],
   iconSvg: `
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
       <circle cx="12" cy="12" r="5"></circle>

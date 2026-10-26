@@ -408,8 +408,8 @@ export default class WeatherModule implements ModuleInstance {
         <div class="astro-sub-card">
           <div class="astro-sub-title" style="justify-content: space-between;">
             <span style="display:inline-flex;align-items:center;gap:4px;"><span>${moon.icon}</span> Måne</span>
-            <button class="btn-goto-sol" data-body="moon" data-time="${day.moonTimes?.rise ? day.moonTimes.rise.getTime() : day.date.getTime()}" style="padding:1px 7px;font-size:10px;" title="Se måneopgang og måneretning i Sol-modulet">
-              Retning →
+            <button class="btn-goto-sol" data-body="moon" data-time="${day.moonTimes?.rise ? day.moonTimes.rise.getTime() : day.date.getTime()}" style="padding:1px 7px;font-size:10px;" title="Se måneopgang og måneretning i Sol/Måne-modulet">
+              Sol/Måne →
             </button>
           </div>
           <div class="astro-sub-val">${moon.fraction}% • ${moon.name}</div>
@@ -454,8 +454,8 @@ export default class WeatherModule implements ModuleInstance {
           ${renderPassedJump(morningTiming.isPassed, 'Morgenens gyldne time fandt sted i morges. Tjek i morgen?', 'Se daggry i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Skyer: ${morning.clouds.total}% (Lav: ${morning.clouds.low}%, Mellem: ${morning.clouds.mid}%, Høj: ${morning.clouds.high}%)</span>
-            <button class="btn-goto-sol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}" title="Åbn Sol-modulet på dette tidspunkt">
-              ☀ Åbn i Sol →
+            <button class="btn-goto-sol" data-time="${sun.sunrise ? sun.sunrise.getTime() : day.date.getTime()}" title="Åbn Sol/Måne-modulet på dette tidspunkt">
+              ☀ Åbn i Sol/Måne →
             </button>
           </div>
         </div>
@@ -476,8 +476,8 @@ export default class WeatherModule implements ModuleInstance {
           ${renderPassedJump(eveningTiming.isPassed, 'Aftenens solnedgang fandt sted tidligere i aften. Tjek i morgen?', 'Se solnedgang i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">Skyer: ${evening.clouds.total}% (Lav: ${evening.clouds.low}%, Mellem: ${evening.clouds.mid}%, Høj: ${evening.clouds.high}%)</span>
-            <button class="btn-goto-sol" data-time="${sun.sunset ? sun.sunset.getTime() : day.date.getTime()}" title="Åbn Sol-modulet på dette tidspunkt">
-              ☀ Åbn i Sol →
+            <button class="btn-goto-sol" data-time="${sun.sunset ? sun.sunset.getTime() : day.date.getTime()}" title="Åbn Sol/Måne-modulet på dette tidspunkt">
+              ☀ Åbn i Sol/Måne →
             </button>
           </div>
         </div>
@@ -497,8 +497,8 @@ export default class WeatherModule implements ModuleInstance {
           ${renderPassedJump(astroTiming.isPassed, 'Astronomisk mørke for denne nat er ovre. Tjek næste nat?', 'Se stjernehimmel i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">${astro.moonImpact}</span>
-            <button class="btn-goto-sol" data-body="moon" data-time="${day.moonTimes?.rise ? day.moonTimes.rise.getTime() : (sun.nightSky?.start ? sun.nightSky.start.getTime() : day.date.getTime())}" title="Se måneretning og nattehimmel i Sol-modulet">
-              ${moon.icon} Se måne i Sol →
+            <button class="btn-goto-sol" data-body="moon" data-time="${day.moonTimes?.rise ? day.moonTimes.rise.getTime() : (sun.nightSky?.start ? sun.nightSky.start.getTime() : day.date.getTime())}" title="Se måneretning og nattehimmel i Sol/Måne-modulet">
+              ${moon.icon} Åbn i Sol/Måne →
             </button>
           </div>
         </div>

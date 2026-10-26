@@ -28,6 +28,10 @@ export default class SunModule implements ModuleInstance {
   private playSpeed: number = 1; // 1x, 2x, 4x
   private playIntervalId: any = null;
 
+  private isLiveCompass: boolean = false;
+  private currentHeading: number | null = null;
+  private boundOrientationHandler: ((e: DeviceOrientationEvent) => void) | null = null;
+
   private unsubLocation: (() => void) | null = null;
 
   public async mount(container: HTMLElement): Promise<void> {
@@ -122,11 +126,13 @@ export default class SunModule implements ModuleInstance {
 
   public onDeactivate(): void {
     this.pausePlayback();
+    this.stopLiveCompass();
     this.simulator?.pause();
   }
 
   public destroy(): void {
     this.pausePlayback();
+    this.stopLiveCompass();
     if (this.unsubLocation) {
       this.unsubLocation();
       this.unsubLocation = null;
@@ -220,12 +226,18 @@ export default class SunModule implements ModuleInstance {
         <!-- 3D / KOMPAS / KORT VISNING KORT -->
         <div class="sun-scene-card">
           <div class="scene-header-row">
-            <div class="fs-segmented-control" style="max-width: 250px;">
+            <div class="fs-segmented-control" style="max-width: 245px;">
               <button class="fs-segment-btn ${this.activeViewMode === '3d' ? 'active' : ''}" data-mode="3d" id="btnMode3D">3D Søger</button>
               <button class="fs-segment-btn ${this.activeViewMode === 'compass' ? 'active' : ''}" data-mode="compass" id="btnModeCompass">Kompas</button>
               <button class="fs-segment-btn ${this.activeViewMode === 'map' ? 'active' : ''}" data-mode="map" id="btnModeMap">Kort</button>
             </div>
-            <span style="font-size: 11px; color: var(--text-dim);" id="sunSceneHint">3D EVF</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="btn-live-compass ${this.isLiveCompass ? 'active' : ''}" id="btnLiveCompass" style="${this.activeViewMode !== 'map' ? '' : 'display:none;'}" title="Følg telefonens indbyggede kompas (peger opad mod din synsretning)">
+                <span>🧭</span>
+                <span id="lblLiveCompass">Live kompas</span>
+              </button>
+              <span style="font-size: 11px; color: var(--text-dim); ${this.activeViewMode === 'map' ? '' : 'display:none;'}" id="sunSceneHint">Satellitkort</span>
+            </div>
           </div>
 
           <div class="canvas-viewport-wrap">
@@ -451,10 +463,15 @@ export default class SunModule implements ModuleInstance {
     const btn3D = this.container.querySelector('#btnMode3D');
     const btnCompass = this.container.querySelector('#btnModeCompass');
     const btnMap = this.container.querySelector('#btnModeMap');
+    const btnLiveCompass = this.container.querySelector('#btnLiveCompass') as HTMLElement | null;
     const canvas = this.container.querySelector('#sunCanvas') as HTMLElement;
     const mapContainer = this.container.querySelector('#sunMapContainer') as HTMLElement;
     const camPresets = this.container.querySelector('#cameraPresetsWrap') as HTMLElement;
-    const sceneHint = this.container.querySelector('#sunSceneHint');
+    const sceneHint = this.container.querySelector('#sunSceneHint') as HTMLElement | null;
+
+    btnLiveCompass?.addEventListener('click', () => {
+      this.toggleLiveCompass();
+    });
 
     const setMode = async (mode: '3d' | 'compass' | 'map') => {
       this.activeViewMode = mode;
@@ -466,7 +483,11 @@ export default class SunModule implements ModuleInstance {
         canvas.style.display = 'none';
         mapContainer.style.display = 'block';
         camPresets.style.display = 'none';
-        if (sceneHint) sceneHint.textContent = 'Satellitkort';
+        if (btnLiveCompass) btnLiveCompass.style.display = 'none';
+        if (sceneHint) {
+          sceneHint.style.display = 'inline';
+          sceneHint.textContent = 'Satellitkort';
+        }
 
         // Lazy-load Leaflet kort
         if (!this.mapView) {
@@ -488,8 +509,12 @@ export default class SunModule implements ModuleInstance {
         canvas.style.display = 'block';
         mapContainer.style.display = 'none';
         camPresets.style.display = mode === '3d' ? 'flex' : 'none';
-        if (sceneHint) sceneHint.textContent = mode === '3d' ? '3D EVF' : 'Top-down Solur';
+        if (btnLiveCompass) btnLiveCompass.style.display = 'inline-flex';
+        if (sceneHint) sceneHint.style.display = 'none';
         this.simulator?.setMode(mode);
+        if (this.isLiveCompass && this.currentHeading !== null) {
+          this.simulator?.setLiveCompass(true, this.currentHeading);
+        }
       }
       this.updateCalculations();
     };
@@ -501,6 +526,9 @@ export default class SunModule implements ModuleInstance {
     // Kameragenveje
     this.container.querySelectorAll('[data-cam]').forEach((btn) => {
       btn.addEventListener('click', () => {
+        if (this.isLiveCompass) {
+          this.stopLiveCompass();
+        }
         const preset = (btn as HTMLElement).dataset.cam as any;
         this.simulator?.resetCamera(preset);
       });
@@ -682,6 +710,105 @@ export default class SunModule implements ModuleInstance {
       this.simulator?.setSubjectType(this.subjectType, val);
       this.updateCalculations();
     });
+  }
+
+  private async toggleLiveCompass(): Promise<void> {
+    if (this.isLiveCompass) {
+      this.stopLiveCompass();
+      return;
+    }
+
+    const DOE = (window as any).DeviceOrientationEvent;
+    if (!DOE) {
+      alert('Din enhed eller browser understøtter ikke kompas-sensorer.');
+      return;
+    }
+
+    // iOS 13+ kræver eksplicit brugertilladelse via en klik-handling
+    if (typeof DOE.requestPermission === 'function') {
+      try {
+        const permState = await DOE.requestPermission();
+        if (permState !== 'granted') {
+          alert('Adgang til telefonens kompas blev afvist. Tillad bevægelses- og orienteringssensorer i Safari-indstillinger.');
+          return;
+        }
+      } catch (err) {
+        console.error('Fejl ved anmodning om kompas-tilladelse:', err);
+        return;
+      }
+    }
+
+    this.isLiveCompass = true;
+    this.updateLiveCompassButtonUI();
+
+    this.boundOrientationHandler = (e: any) => {
+      let heading: number | null = null;
+
+      if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
+        // iOS Safari: webkitCompassHeading er grader med uret fra magnetisk nord (0 = N, 90 = Ø)
+        heading = e.webkitCompassHeading;
+      } else if (typeof e.alpha === 'number' && !isNaN(e.alpha)) {
+        // Android / Standard DeviceOrientation: alpha er rotation mod uret, så kompasretning = (360 - alpha) % 360
+        heading = (360 - e.alpha) % 360;
+      }
+
+      if (heading !== null) {
+        // Udglat små rystelser (lavpas-filter med cirkulær vinkelhåndtering)
+        if (this.currentHeading === null) {
+          this.currentHeading = heading;
+        } else {
+          let diff = ((heading - this.currentHeading + 540) % 360) - 180;
+          if (Math.abs(diff) > 0.4) {
+            this.currentHeading = (this.currentHeading + diff * 0.35 + 360) % 360;
+          }
+        }
+        this.updateLiveCompassButtonUI();
+        this.simulator?.setLiveCompass(true, this.currentHeading);
+      }
+    };
+
+    const win = window as any;
+    // Lyt på både deviceorientationabsolute (Android) og deviceorientation (iOS)
+    if ('ondeviceorientationabsolute' in win) {
+      win.addEventListener('deviceorientationabsolute', this.boundOrientationHandler, true);
+    } else {
+      win.addEventListener('deviceorientation', this.boundOrientationHandler, true);
+    }
+
+    this.simulator?.setLiveCompass(true, this.currentHeading ?? 0);
+  }
+
+  private stopLiveCompass(): void {
+    this.isLiveCompass = false;
+    this.currentHeading = null;
+    if (this.boundOrientationHandler) {
+      const win = window as any;
+      if ('ondeviceorientationabsolute' in win) {
+        win.removeEventListener('deviceorientationabsolute', this.boundOrientationHandler, true);
+      }
+      win.removeEventListener('deviceorientation', this.boundOrientationHandler, true);
+      this.boundOrientationHandler = null;
+    }
+    this.updateLiveCompassButtonUI();
+    this.simulator?.setLiveCompass(false, null);
+  }
+
+  private updateLiveCompassButtonUI(): void {
+    const btn = this.container.querySelector('#btnLiveCompass');
+    const lbl = this.container.querySelector('#lblLiveCompass');
+    if (btn) {
+      btn.classList.toggle('active', this.isLiveCompass);
+    }
+    if (lbl) {
+      if (this.isLiveCompass && this.currentHeading !== null) {
+        const degVal = Math.round(this.currentHeading) % 360;
+        lbl.textContent = `Live ${degVal}° ${AstroCore.getCompassDirection(degVal)}`;
+      } else if (this.isLiveCompass) {
+        lbl.textContent = 'Live (Kalibrerer...)';
+      } else {
+        lbl.textContent = 'Live kompas';
+      }
+    }
   }
 
   private startPlayback(): void {

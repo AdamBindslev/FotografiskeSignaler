@@ -46,7 +46,9 @@ export class ShadowSimulator {
     diffusionFactor: 1.0,
     sunTimes: null as SunTimes | null,
     moonTimes: null as MoonTimes | null,
-    moonIllum: null as MoonIllumination | null
+    moonIllum: null as MoonIllumination | null,
+    liveCompassEnabled: false,
+    deviceHeading: null as number | null
   };
 
   private animFrameId: number | null = null;
@@ -97,7 +99,9 @@ export class ShadowSimulator {
       const dx = x - this.camera.lastMouseX;
       const dy = y - this.camera.lastMouseY;
 
-      this.camera.azimuth = ((this.camera.azimuth - dx * 0.5) % 360 + 360) % 360;
+      if (!this.simData.liveCompassEnabled) {
+        this.camera.azimuth = ((this.camera.azimuth - dx * 0.5) % 360 + 360) % 360;
+      }
       this.camera.pitch = Math.max(12, Math.min(85, this.camera.pitch + dy * 0.4));
 
       this.camera.lastMouseX = x;
@@ -228,6 +232,21 @@ export class ShadowSimulator {
     this.subjectType = type;
     if (height) this.subjectHeight = height;
     this.render();
+  }
+
+  public setLiveCompass(enabled: boolean, headingDeg?: number | null): void {
+    this.simData.liveCompassEnabled = enabled;
+    if (headingDeg !== undefined && headingDeg !== null && !isNaN(headingDeg)) {
+      this.simData.deviceHeading = ((headingDeg % 360) + 360) % 360;
+      if (enabled && this.currentMode === '3d') {
+        this.camera.azimuth = this.simData.deviceHeading;
+      }
+    } else if (!enabled) {
+      this.simData.deviceHeading = null;
+    }
+    if (!this.isPaused) {
+      this.render();
+    }
   }
 
   public resetCamera(preset?: 'default' | 'top' | 'rim' | 'shadow'): void {
@@ -1042,7 +1061,16 @@ export class ShadowSimulator {
     this.ctx.fillStyle = isRed ? 'rgba(201, 52, 52, 0.6)' : 'rgba(148, 163, 184, 0.5)';
     this.ctx.font = '9px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('TRÆK FOR AT ROTERE 3D-SØGER', w * 0.5, h - 16);
+    if (this.simData.liveCompassEnabled && this.simData.deviceHeading !== null) {
+      this.ctx.fillStyle = isRed ? '#ff6666' : '#34d399';
+      this.ctx.fillText(
+        `🧭 LIVE KOMPAS AKTIVT (${Math.round(this.simData.deviceHeading)}° ${AstroCore.getCompassDirection(this.simData.deviceHeading)})`,
+        w * 0.5,
+        h - 16
+      );
+    } else {
+      this.ctx.fillText('TRÆK FOR AT ROTERE 3D-SØGER', w * 0.5, h - 16);
+    }
     this.ctx.restore();
   }
 
@@ -1136,24 +1164,49 @@ export class ShadowSimulator {
 
   private renderCompassView(w: number, h: number): void {
     const cx = w * 0.5;
-    const cy = h * 0.5;
-    const r = Math.min(w, h) * 0.42;
+    const cy = h * 0.52;
+    const r = Math.min(w, h) * 0.4;
     const isRed = this.isNightRedMode();
+    const isLive = Boolean(this.simData.liveCompassEnabled && this.simData.deviceHeading !== null);
+    const rotDeg = isLive ? (this.simData.deviceHeading as number) : 0;
 
     this.ctx.fillStyle = isRed ? '#080000' : '#070a12';
     this.ctx.fillRect(0, 0, w, h);
     this.ctx.save();
 
+    // Hvis Live Kompas er aktivt, vis sigtemærke og aktuel telefon-kurs øverst på skærmen ("Heading Up")
+    if (isLive) {
+      const heading = Math.round(rotDeg) % 360;
+      const dirName = AstroCore.getCompassDirection(heading);
+      const topY = cy - r - 18;
+
+      // Lille sigte-trekant på kanten af kompasset kl. 12 (peger ned mod kompasringen)
+      this.ctx.fillStyle = isRed ? '#ff4d4d' : '#10b981';
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx, cy - r - 2);
+      this.ctx.lineTo(cx - 6, cy - r - 11);
+      this.ctx.lineTo(cx + 6, cy - r - 11);
+      this.ctx.closePath();
+      this.ctx.fill();
+
+      // Kurs-badge øverst
+      this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillStyle = isRed ? '#ff6666' : '#34d399';
+      this.ctx.fillText(`▲ SIGTER MOD ${heading}° ${dirName}`, cx, Math.max(14, topY - 4));
+    }
+
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, r, 0, PI * 2);
     this.ctx.fillStyle = isRed ? '#140202' : '#0f172a';
     this.ctx.fill();
-    this.ctx.strokeStyle = isRed ? 'rgba(255, 50, 50, 0.25)' : 'rgba(255, 255, 255, 0.15)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 50, 50, 0.25)' : isLive ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255, 255, 255, 0.15)';
     this.ctx.lineWidth = 2;
     this.ctx.stroke();
 
     for (let degStep = 0; degStep < 360; degStep += 10) {
-      const a = (degStep - 90) * rad;
+      const a = (degStep - rotDeg - 90) * rad;
       const isMajor = degStep % 30 === 0;
       const isCardinal = degStep % 90 === 0;
       const tickLen = isCardinal ? 12 : isMajor ? 8 : 4;
@@ -1166,7 +1219,7 @@ export class ShadowSimulator {
       this.ctx.beginPath();
       this.ctx.moveTo(x1, y1);
       this.ctx.lineTo(x2, y2);
-      this.ctx.strokeStyle = isCardinal ? (isRed ? '#ff4d4d' : '#38bdf8') : isRed ? 'rgba(255, 50, 50, 0.15)' : 'rgba(255, 255, 255, 0.12)';
+      this.ctx.strokeStyle = isCardinal ? (degStep === 0 ? '#f43f5e' : isRed ? '#ff4d4d' : '#38bdf8') : isRed ? 'rgba(255, 50, 50, 0.15)' : 'rgba(255, 255, 255, 0.12)';
       this.ctx.lineWidth = isCardinal ? 2 : 1;
       this.ctx.stroke();
 
@@ -1187,15 +1240,15 @@ export class ShadowSimulator {
     if (!isMoon && this.simData.sunTimes?.sunrise && this.simData.sunTimes?.sunset) {
       const risePos = AstroCore.getSunPosition(this.simData.sunTimes.sunrise, this.simData.lat, this.simData.lng);
       const setPos = AstroCore.getSunPosition(this.simData.sunTimes.sunset, this.simData.lat, this.simData.lng);
-      const startAngle = (risePos.azimuth - 90) * rad;
-      const endAngle = (setPos.azimuth - 90) * rad;
+      const startAngle = (risePos.azimuth - rotDeg - 90) * rad;
+      const endAngle = (setPos.azimuth - rotDeg - 90) * rad;
 
       // Tusmørke-udløbere (blå time / lige før solopgang og efter solnedgang)
       if (this.simData.sunTimes.civilDawn && this.simData.sunTimes.civilDusk) {
         const dawnPos = AstroCore.getSunPosition(this.simData.sunTimes.civilDawn, this.simData.lat, this.simData.lng);
         const duskPos = AstroCore.getSunPosition(this.simData.sunTimes.civilDusk, this.simData.lat, this.simData.lng);
-        const dawnAngle = (dawnPos.azimuth - 90) * rad;
-        const duskAngle = (duskPos.azimuth - 90) * rad;
+        const dawnAngle = (dawnPos.azimuth - rotDeg - 90) * rad;
+        const duskAngle = (duskPos.azimuth - rotDeg - 90) * rad;
 
         this.ctx.save();
         this.ctx.setLineDash([3, 3]);
@@ -1234,8 +1287,8 @@ export class ShadowSimulator {
       const mSetAz = this.simData.moonTimes.setAzimuth;
 
       if (mRiseAz !== null && mRiseAz !== undefined && mSetAz !== null && mSetAz !== undefined) {
-        const startAngle = (mRiseAz - 90) * rad;
-        const endAngle = (mSetAz - 90) * rad;
+        const startAngle = (mRiseAz - rotDeg - 90) * rad;
+        const endAngle = (mSetAz - rotDeg - 90) * rad;
 
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, r * 0.75, startAngle, endAngle, false);
@@ -1261,7 +1314,7 @@ export class ShadowSimulator {
       }
     }
 
-    const sunAngle = (this.simData.sunAzimuth - 90) * rad;
+    const sunAngle = (this.simData.sunAzimuth - rotDeg - 90) * rad;
     const sunX = cx + cos(sunAngle) * (r * 0.92);
     const sunY = cy + sin(sunAngle) * (r * 0.92);
     const isBelowHorizon = this.simData.sunAltitude <= 0;
@@ -1320,7 +1373,7 @@ export class ShadowSimulator {
     this.ctx.restore();
 
     if (this.simData.hasDirectShadow) {
-      const shadowAngle = (this.simData.shadowAzimuth - 90) * rad;
+      const shadowAngle = (this.simData.shadowAzimuth - rotDeg - 90) * rad;
       const shadowLenPx = Math.min(r * 0.85, (this.simData.shadowLength / 10) * r * 0.5);
       const shadowX = cx + cos(shadowAngle) * shadowLenPx;
       const shadowY = cy + sin(shadowAngle) * shadowLenPx;

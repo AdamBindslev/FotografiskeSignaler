@@ -139,7 +139,7 @@ export default class HomeModule implements ModuleInstance {
           </div>
         </div>
 
-        <!-- MODUL 2: SOL -->
+        <!-- MODUL 2: SOL/MÅNE -->
         <div class="fs-card" style="border-left: 3px solid var(--accent-sun); cursor: pointer;" id="cardGoSun">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -155,18 +155,18 @@ export default class HomeModule implements ModuleInstance {
                 </svg>
               </div>
               <div>
-                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Sol</h2>
-                <span style="font-size: 11px; color: var(--accent-sun); font-weight: 600; text-transform: uppercase;">Sol, Skygge & Lysretning</span>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Sol/Måne</h2>
+                <span style="font-size: 11px; color: var(--accent-sun); font-weight: 600; text-transform: uppercase;">Sol, Måne, Skygge & Lysretning</span>
               </div>
             </div>
-            <span class="fs-badge badge-sun">3D & Kort</span>
+            <span class="fs-badge badge-sun">3D, Kompas & Kort</span>
           </div>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
-            Interaktiv 3D-søger og satellitkort for ${safeLocName}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
+            Interaktiv 3D-søger, live kompas og satellitkort for ${safeLocName}. Simulerer sol- og måneretning, op-/nedgangsvinkler, skyggelængde og farvetemperatur.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Aktuel retning: ${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}</span>
-            <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol →</span>
+            <span>Aktuel solretning: ${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}</span>
+            <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol/Måne →</span>
           </div>
         </div>
 
@@ -278,7 +278,7 @@ export default class HomeModule implements ModuleInstance {
 
   private getModuleName(id: string): string {
     if (id === 'weather') return 'Vejr';
-    if (id === 'sun') return 'Sol';
+    if (id === 'sun') return 'Sol/Måne';
     if (id === 'dof') return 'DOF';
     if (id === 'exposure') return 'Eksponering';
     return id;

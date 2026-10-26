@@ -19,7 +19,7 @@ export default defineConfig({
       manifest: {
         name: 'Fotografiske Signaler',
         short_name: 'FotoSignaler',
-        description: 'Professionel fotografisk værktøjskasse: Vejr, Sol, DOF og Eksponering samlet i én PWA.',
+        description: 'Professionel fotografisk værktøjskasse: Vejr, Sol/Måne, DOF og Eksponering samlet i én PWA.',
         start_url: './',
         scope: './',
         display: 'standalone',
