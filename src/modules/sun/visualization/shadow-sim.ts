@@ -34,6 +34,8 @@ export class ShadowSimulator {
   };
 
   private simData = {
+    lat: 55.6761,
+    lng: 12.5683,
     sunAzimuth: 180,
     sunAltitude: 30,
     shadowAzimuth: 0,
@@ -46,6 +48,12 @@ export class ShadowSimulator {
 
   private animFrameId: number | null = null;
   private isPaused: boolean = false;
+  private resizeObserver: ResizeObserver | null = null;
+  private boundMouseMove!: (e: MouseEvent) => void;
+  private boundMouseUp!: () => void;
+  private boundTouchMove!: (e: TouchEvent) => void;
+  private boundTouchEnd!: () => void;
+  private boundThemeChange!: () => void;
 
   constructor(canvas: HTMLCanvasElement, options?: SimulatorOptions) {
     this.canvas = canvas;
@@ -55,6 +63,22 @@ export class ShadowSimulator {
     if (options?.subjectHeight) this.subjectHeight = options.subjectHeight;
 
     this.setupInteraction();
+    this.setupResizeObserver();
+  }
+
+  private setupResizeObserver(): void {
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        if (!this.isPaused) {
+          this.render();
+        }
+      });
+      if (this.canvas.parentElement) {
+        this.resizeObserver.observe(this.canvas.parentElement);
+      } else {
+        this.resizeObserver.observe(this.canvas);
+      }
+    }
   }
 
   private setupInteraction(): void {
@@ -82,9 +106,22 @@ export class ShadowSimulator {
       this.camera.isDragging = false;
     };
 
+    this.boundMouseMove = (e: MouseEvent) => onMove(e.clientX, e.clientY);
+    this.boundMouseUp = onEnd;
+    this.boundTouchMove = (e: TouchEvent) => {
+      if (this.camera.isDragging && e.touches.length === 1) {
+        onMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    this.boundTouchEnd = onEnd;
+    this.boundThemeChange = () => {
+      if (!this.isPaused) this.render();
+    };
+
     this.canvas.addEventListener('mousedown', (e) => onStart(e.clientX, e.clientY));
-    window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
-    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('mousemove', this.boundMouseMove);
+    window.addEventListener('mouseup', this.boundMouseUp);
+    window.addEventListener('fs-theme-change', this.boundThemeChange);
 
     this.canvas.addEventListener(
       'touchstart',
@@ -96,17 +133,21 @@ export class ShadowSimulator {
       { passive: true }
     );
 
-    window.addEventListener(
-      'touchmove',
-      (e) => {
-        if (this.camera.isDragging && e.touches.length === 1) {
-          onMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      },
-      { passive: true }
-    );
+    window.addEventListener('touchmove', this.boundTouchMove, { passive: true });
+    window.addEventListener('touchend', this.boundTouchEnd);
+  }
 
-    window.addEventListener('touchend', onEnd);
+  public destroy(): void {
+    this.pause();
+    window.removeEventListener('mousemove', this.boundMouseMove);
+    window.removeEventListener('mouseup', this.boundMouseUp);
+    window.removeEventListener('touchmove', this.boundTouchMove);
+    window.removeEventListener('touchend', this.boundTouchEnd);
+    window.removeEventListener('fs-theme-change', this.boundThemeChange);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
   }
 
   public pause(): void {
@@ -122,11 +163,22 @@ export class ShadowSimulator {
     this.render();
   }
 
-  public update(altitudeDeg: number, azimuthDeg: number, heightMeters?: number, opt?: { subjectType?: any; diffusionFactor?: number; sunTimes?: SunTimes | null }): void {
+  private isNightRedMode(): boolean {
+    return typeof document !== 'undefined' && document.body.classList.contains('theme-night-red');
+  }
+
+  public update(
+    altitudeDeg: number,
+    azimuthDeg: number,
+    heightMeters?: number,
+    opt?: { subjectType?: any; diffusionFactor?: number; sunTimes?: SunTimes | null; lat?: number; lng?: number }
+  ): void {
     if (typeof heightMeters === 'number' && heightMeters > 0) this.subjectHeight = heightMeters;
     if (opt?.subjectType) this.subjectType = opt.subjectType;
     if (typeof opt?.diffusionFactor === 'number') this.simData.diffusionFactor = opt.diffusionFactor;
     if (opt?.sunTimes) this.simData.sunTimes = opt.sunTimes;
+    if (typeof opt?.lat === 'number') this.simData.lat = opt.lat;
+    if (typeof opt?.lng === 'number') this.simData.lng = opt.lng;
 
     this.simData.sunAzimuth = azimuthDeg;
     this.simData.sunAltitude = altitudeDeg;
@@ -245,6 +297,15 @@ export class ShadowSimulator {
 
   private drawSkyDome(w: number, h: number, alt: number): void {
     const grad = this.ctx.createLinearGradient(0, 0, 0, h);
+    if (this.isNightRedMode()) {
+      grad.addColorStop(0, '#080000');
+      grad.addColorStop(0.6, '#140202');
+      grad.addColorStop(0.88, alt > 0 ? '#2a0404' : '#180202');
+      grad.addColorStop(1, '#0a0101');
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, w, h);
+      return;
+    }
     if (alt > 20) {
       grad.addColorStop(0, '#0c1322');
       grad.addColorStop(0.55, '#19243a');
@@ -278,6 +339,7 @@ export class ShadowSimulator {
   private drawIlluminatedGroundPlane(project: any, scale: number, alt: number): void {
     const radius = 24;
     const segments = 64;
+    const isRed = this.isNightRedMode();
 
     this.ctx.save();
     this.ctx.beginPath();
@@ -292,7 +354,11 @@ export class ShadowSimulator {
     const centerPt = project(0, 0, 0);
     const groundGrad = this.ctx.createRadialGradient(centerPt.x, centerPt.y, 5, centerPt.x, centerPt.y, radius * scale * 1.1);
 
-    if (alt > 6) {
+    if (isRed) {
+      groundGrad.addColorStop(0, '#240505');
+      groundGrad.addColorStop(0.6, '#140202');
+      groundGrad.addColorStop(1, 'rgba(10, 0, 0, 0)');
+    } else if (alt > 6) {
       groundGrad.addColorStop(0, '#243048');
       groundGrad.addColorStop(0.6, '#182030');
       groundGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
@@ -308,7 +374,7 @@ export class ShadowSimulator {
 
     this.ctx.fillStyle = groundGrad;
     this.ctx.fill();
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 50, 50, 0.2)' : 'rgba(255, 255, 255, 0.12)';
     this.ctx.lineWidth = 1.5;
     this.ctx.stroke();
     this.ctx.restore();
@@ -316,6 +382,7 @@ export class ShadowSimulator {
 
   private drawGroundGrid(project: any): void {
     const rings = [1, 2, 5, 10, 20];
+    const isRed = this.isNightRedMode();
     this.ctx.save();
     this.ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
@@ -331,12 +398,16 @@ export class ShadowSimulator {
         if (i === 0) this.ctx.moveTo(pt.x, pt.y);
         else this.ctx.lineTo(pt.x, pt.y);
       }
-      this.ctx.strokeStyle = dist === 5 || dist === 10 ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.08)';
+      if (isRed) {
+        this.ctx.strokeStyle = dist === 5 || dist === 10 ? 'rgba(255, 60, 60, 0.25)' : 'rgba(255, 50, 50, 0.12)';
+      } else {
+        this.ctx.strokeStyle = dist === 5 || dist === 10 ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.08)';
+      }
       this.ctx.lineWidth = dist === 5 || dist === 10 ? 1.5 : 1;
       this.ctx.stroke();
 
       const labelPt = project(dist, 0, 0);
-      this.ctx.fillStyle = 'rgba(148, 163, 184, 0.65)';
+      this.ctx.fillStyle = isRed ? 'rgba(201, 52, 52, 0.8)' : 'rgba(148, 163, 184, 0.65)';
       this.ctx.fillText(`${dist}m`, labelPt.x, labelPt.y - 5);
     }
     this.ctx.restore();
@@ -347,6 +418,7 @@ export class ShadowSimulator {
     const effectivePitchFactor = Math.max(0.3, sin(camPitchRad));
     const maxVisibleMeters = (Math.min(w, h) * 0.42) / (scale * effectivePitchFactor);
     const dist = Math.max(3.5, Math.min(22, maxVisibleMeters * 0.85));
+    const isRed = this.isNightRedMode();
 
     this.ctx.save();
     this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
@@ -363,21 +435,21 @@ export class ShadowSimulator {
     this.ctx.setLineDash([4, 4]);
 
     // Sydakse
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 50, 50, 0.22)' : 'rgba(255, 255, 255, 0.16)';
     this.ctx.beginPath();
     this.ctx.moveTo(pCenter.x, pCenter.y);
     this.ctx.lineTo(pS.x, pS.y);
     this.ctx.stroke();
 
     // Nordakse (fremhæves i rødligt skær)
-    this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.45)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.6)' : 'rgba(239, 68, 68, 0.45)';
     this.ctx.beginPath();
     this.ctx.moveTo(pCenter.x, pCenter.y);
     this.ctx.lineTo(pN.x, pN.y);
     this.ctx.stroke();
 
     // Øst-Vest akse
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 50, 50, 0.22)' : 'rgba(255, 255, 255, 0.16)';
     this.ctx.beginPath();
     this.ctx.moveTo(pW.x, pW.y);
     this.ctx.lineTo(pE.x, pE.y);
@@ -391,15 +463,15 @@ export class ShadowSimulator {
       const bx = pt.x - bw * 0.5;
       const by = pt.y - bh * 0.5;
 
-      this.ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-      this.ctx.strokeStyle = isNorth ? '#ef4444' : 'rgba(148, 163, 184, 0.45)';
+      this.ctx.fillStyle = isRed ? 'rgba(24, 2, 2, 0.94)' : 'rgba(15, 23, 42, 0.92)';
+      this.ctx.strokeStyle = isNorth ? '#ef4444' : isRed ? 'rgba(201, 52, 52, 0.5)' : 'rgba(148, 163, 184, 0.45)';
       this.ctx.lineWidth = isNorth ? 1.5 : 1;
       this.ctx.beginPath();
       this.ctx.roundRect(bx, by, bw, bh, 4);
       this.ctx.fill();
       this.ctx.stroke();
 
-      this.ctx.fillStyle = isNorth ? '#ef4444' : '#cbd5e1';
+      this.ctx.fillStyle = isNorth ? '#ef4444' : isRed ? '#c93434' : '#cbd5e1';
       this.ctx.fillText(label, pt.x, pt.y);
     };
 
@@ -413,6 +485,7 @@ export class ShadowSimulator {
 
   private drawCastShadow(project: any, shadowAzDeg: number, lengthMeters: number): void {
     if (lengthMeters <= 0.05) return;
+    const isRed = this.isNightRedMode();
 
     const radAz = shadowAzDeg * rad;
     const dirX = sin(radAz);
@@ -440,8 +513,8 @@ export class ShadowSimulator {
     const diffFactor = this.simData.diffusionFactor || 1.0;
 
     shadowGrad.addColorStop(0, `rgba(0, 0, 0, ${0.95 * diffFactor})`);
-    shadowGrad.addColorStop(0.7, `rgba(2, 6, 18, ${0.85 * diffFactor})`);
-    shadowGrad.addColorStop(1, `rgba(10, 16, 28, ${0.45 * diffFactor})`);
+    shadowGrad.addColorStop(0.7, isRed ? `rgba(12, 0, 0, ${0.85 * diffFactor})` : `rgba(2, 6, 18, ${0.85 * diffFactor})`);
+    shadowGrad.addColorStop(1, isRed ? `rgba(20, 2, 2, ${0.45 * diffFactor})` : `rgba(10, 16, 28, ${0.45 * diffFactor})`);
 
     this.ctx.fillStyle = shadowGrad;
     this.ctx.beginPath();
@@ -452,11 +525,12 @@ export class ShadowSimulator {
     this.ctx.closePath();
     this.ctx.fill();
 
-    this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+    const shadowAccent = isRed ? '#ff4444' : '#38bdf8';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 68, 68, 0.45)' : 'rgba(56, 189, 248, 0.45)';
     this.ctx.lineWidth = 1.5;
     this.ctx.stroke();
 
-    this.ctx.strokeStyle = '#38bdf8';
+    this.ctx.strokeStyle = shadowAccent;
     this.ctx.setLineDash([4, 4]);
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
@@ -471,15 +545,15 @@ export class ShadowSimulator {
     const badgeX = pTip.x - badgeW * 0.5;
     const badgeY = pTip.y - 28;
 
-    this.ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-    this.ctx.strokeStyle = '#38bdf8';
+    this.ctx.fillStyle = isRed ? 'rgba(24, 2, 2, 0.94)' : 'rgba(15, 23, 42, 0.92)';
+    this.ctx.strokeStyle = shadowAccent;
     this.ctx.lineWidth = 1.5;
     this.ctx.beginPath();
     this.ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 4);
     this.ctx.fill();
     this.ctx.stroke();
 
-    this.ctx.fillStyle = '#38bdf8';
+    this.ctx.fillStyle = shadowAccent;
     this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
@@ -492,11 +566,12 @@ export class ShadowSimulator {
     const h = this.subjectHeight;
     const pBase = project(0, 0, 0);
     const pTop = project(0, 0, h);
+    const isRed = this.isNightRedMode();
 
     this.ctx.save();
 
     if (this.subjectType === 'tree') {
-      this.ctx.strokeStyle = '#92400e';
+      this.ctx.strokeStyle = isRed ? '#7f1d1d' : '#92400e';
       this.ctx.lineWidth = Math.max(4, scale * 0.25);
       this.ctx.beginPath();
       this.ctx.moveTo(pBase.x, pBase.y);
@@ -506,9 +581,15 @@ export class ShadowSimulator {
       const crownCenter = project(0, 0, h * 0.7);
       const crownRadius = (pBase.y - pTop.y) * 0.45;
       const crownGrad = this.ctx.createRadialGradient(crownCenter.x, crownCenter.y, crownRadius * 0.1, crownCenter.x, crownCenter.y, crownRadius);
-      crownGrad.addColorStop(0, '#4ade80');
-      crownGrad.addColorStop(0.7, '#16a34a');
-      crownGrad.addColorStop(1, '#14532d');
+      if (isRed) {
+        crownGrad.addColorStop(0, '#dc2626');
+        crownGrad.addColorStop(0.7, '#991b1b');
+        crownGrad.addColorStop(1, '#450a0a');
+      } else {
+        crownGrad.addColorStop(0, '#4ade80');
+        crownGrad.addColorStop(0.7, '#16a34a');
+        crownGrad.addColorStop(1, '#14532d');
+      }
 
       this.ctx.fillStyle = crownGrad;
       this.ctx.beginPath();
@@ -525,8 +606,8 @@ export class ShadowSimulator {
       const t3 = project(bW * 0.5, bW * 0.5, h);
       const t4 = project(-bW * 0.5, bW * 0.5, h);
 
-      this.ctx.fillStyle = 'rgba(51, 65, 85, 0.9)';
-      this.ctx.strokeStyle = '#94a3b8';
+      this.ctx.fillStyle = isRed ? 'rgba(69, 10, 10, 0.9)' : 'rgba(51, 65, 85, 0.9)';
+      this.ctx.strokeStyle = isRed ? '#dc2626' : '#94a3b8';
       this.ctx.lineWidth = 1.5;
 
       this.ctx.beginPath();
@@ -547,7 +628,7 @@ export class ShadowSimulator {
       this.ctx.fill();
       this.ctx.stroke();
 
-      this.ctx.fillStyle = 'rgba(71, 85, 105, 0.95)';
+      this.ctx.fillStyle = isRed ? 'rgba(90, 15, 15, 0.95)' : 'rgba(71, 85, 105, 0.95)';
       this.ctx.beginPath();
       this.ctx.moveTo(t1.x, t1.y);
       this.ctx.lineTo(t2.x, t2.y);
@@ -560,13 +641,14 @@ export class ShadowSimulator {
       const headY = pTop.y;
       const footY = pBase.y;
       const personH = footY - headY;
+      const personColor = isRed ? '#ff4d4d' : '#f8fafc';
 
-      this.ctx.strokeStyle = '#f8fafc';
+      this.ctx.strokeStyle = personColor;
       this.ctx.lineWidth = 3;
 
       this.ctx.beginPath();
       this.ctx.arc(pBase.x, headY + 5, 5.5, 0, PI * 2);
-      this.ctx.fillStyle = '#f8fafc';
+      this.ctx.fillStyle = personColor;
       this.ctx.fill();
 
       this.ctx.beginPath();
@@ -581,7 +663,7 @@ export class ShadowSimulator {
     }
 
     const markX = pBase.x + 20;
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.4)' : 'rgba(255, 255, 255, 0.35)';
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(markX, pBase.y);
@@ -592,7 +674,7 @@ export class ShadowSimulator {
     this.ctx.lineTo(markX + 3, pTop.y);
     this.ctx.stroke();
 
-    this.ctx.fillStyle = '#cbd5e1';
+    this.ctx.fillStyle = isRed ? '#c93434' : '#cbd5e1';
     this.ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'left';
     this.ctx.fillText(`${this.subjectHeight.toFixed(1)}m`, markX + 6, (pBase.y + pTop.y) * 0.5 + 3);
@@ -606,6 +688,7 @@ export class ShadowSimulator {
       return;
     }
 
+    const isRed = this.isNightRedMode();
     const relAz = ((azDeg - this.camera.azimuth + 540) % 360) - 180;
     const isFacingSun = Math.abs(relAz) < 95;
     const pTop = project(0, 0, this.subjectHeight);
@@ -614,8 +697,8 @@ export class ShadowSimulator {
       // Solen befinder sig bag kameraets synsvinkel - vis diskret statusindikator
       this.ctx.save();
       const badgeText = `☀ Sol: ${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)} (+${altDeg.toFixed(1)}°) [Bag synsvinkel]`;
-      this.ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-      this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+      this.ctx.fillStyle = isRed ? 'rgba(24, 2, 2, 0.92)' : 'rgba(15, 23, 42, 0.88)';
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.45)' : 'rgba(245, 158, 11, 0.4)';
       this.ctx.lineWidth = 1;
       const bW = 230;
       const bH = 22;
@@ -624,7 +707,7 @@ export class ShadowSimulator {
       this.ctx.fill();
       this.ctx.stroke();
 
-      this.ctx.fillStyle = '#fbbf24';
+      this.ctx.fillStyle = isRed ? '#ff4d4d' : '#fbbf24';
       this.ctx.font = 'bold 10px ui-monospace, SFMono-Regular, monospace';
       this.ctx.textAlign = 'left';
       this.ctx.textBaseline = 'middle';
@@ -667,7 +750,11 @@ export class ShadowSimulator {
     const glowRadius = 40;
     const sunGlow = this.ctx.createRadialGradient(sunScreenX, sunScreenY, 4, sunScreenX, sunScreenY, glowRadius);
 
-    if (altDeg < 6) {
+    if (isRed) {
+      sunGlow.addColorStop(0, '#ff4d4d');
+      sunGlow.addColorStop(0.35, 'rgba(220, 38, 38, 0.5)');
+      sunGlow.addColorStop(1, 'rgba(127, 29, 29, 0)');
+    } else if (altDeg < 6) {
       sunGlow.addColorStop(0, '#fbbf24');
       sunGlow.addColorStop(0.35, 'rgba(245, 158, 11, 0.6)');
       sunGlow.addColorStop(1, 'rgba(180, 83, 9, 0)');
@@ -683,13 +770,13 @@ export class ShadowSimulator {
     this.ctx.arc(sunScreenX, sunScreenY, glowRadius, 0, PI * 2);
     this.ctx.fill();
 
-    this.ctx.fillStyle = altDeg < 6 ? '#fef08a' : '#ffffff';
+    this.ctx.fillStyle = isRed ? '#ff6666' : altDeg < 6 ? '#fef08a' : '#ffffff';
     this.ctx.beginPath();
     this.ctx.arc(sunScreenX, sunScreenY, 11, 0, PI * 2);
     this.ctx.fill();
 
     // Gylden stiplet lysstråle fra solen ned til motivet (kollinær med skyggen)
-    this.ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.55)' : 'rgba(251, 191, 36, 0.55)';
     this.ctx.lineWidth = 1.5;
     this.ctx.setLineDash([4, 4]);
     this.ctx.beginPath();
@@ -699,32 +786,34 @@ export class ShadowSimulator {
     this.ctx.setLineDash([]);
 
     // Sol-mærkat
-    this.ctx.fillStyle = '#fbbf24';
+    this.ctx.fillStyle = isRed ? '#ff4d4d' : '#fbbf24';
     this.ctx.font = 'bold 11px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = sunScreenX > cx ? 'left' : 'right';
     const textX = sunScreenX > cx ? sunScreenX + 16 : sunScreenX - 16;
     this.ctx.fillText(`SOL ${altDeg >= 0 ? '+' : ''}${altDeg.toFixed(1)}°`, textX, sunScreenY - 4);
-    this.ctx.fillStyle = '#94a3b8';
+    this.ctx.fillStyle = isRed ? '#c93434' : '#94a3b8';
     this.ctx.fillText(`${azDeg.toFixed(0)}° ${AstroCore.getCompassDirection(azDeg)}`, textX, sunScreenY + 10);
 
     this.ctx.restore();
   }
 
   private drawSubHorizonIndicator(w: number, h: number, altDeg: number): void {
+    const isRed = this.isNightRedMode();
     this.ctx.save();
-    this.ctx.fillStyle = '#818cf8';
+    this.ctx.fillStyle = isRed ? '#ff4d4d' : '#818cf8';
     this.ctx.font = 'bold 12px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
     const badgeText = altDeg < -18 ? 'ASTRONOMISK NAT' : altDeg < -6 ? 'TUSMØRKE' : 'BLÅ TIME';
     this.ctx.fillText(`☾ ${badgeText} (SOL ${altDeg.toFixed(1)}° UNDER HORISONTEN)`, w * 0.5, 34);
     this.ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
-    this.ctx.fillStyle = '#64748b';
+    this.ctx.fillStyle = isRed ? '#8b1e1e' : '#64748b';
     this.ctx.fillText('Ingen hårde direkte skygger – diffus belysning', w * 0.5, 50);
     this.ctx.restore();
   }
 
   private drawEvfOverlay(w: number, h: number): void {
-    const reticleColor = 'rgba(255, 255, 255, 0.2)';
+    const isRed = this.isNightRedMode();
+    const reticleColor = isRed ? 'rgba(255, 60, 60, 0.25)' : 'rgba(255, 255, 255, 0.2)';
     const rLen = 14;
     const pad = 12;
 
@@ -752,23 +841,24 @@ export class ShadowSimulator {
     this.drawMiniCompassRose(w, h);
 
     // Instruktion i bunden
-    this.ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+    this.ctx.fillStyle = isRed ? 'rgba(201, 52, 52, 0.6)' : 'rgba(148, 163, 184, 0.5)';
     this.ctx.font = '9px ui-monospace, SFMono-Regular, monospace';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('TRÆK FOR AT ROTERE 3D-SØGER', w * 0.5, h - 16);
     this.ctx.restore();
   }
 
-  private drawMiniCompassRose(w: number, h: number): void {
+  private drawMiniCompassRose(w: number, _h: number): void {
     const radius = 24;
     const cx = w - 46;
     const cy = 46;
+    const isRed = this.isNightRedMode();
 
     this.ctx.save();
 
     // Baggrunds-skive for mini-kompas
-    this.ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    this.ctx.fillStyle = isRed ? 'rgba(24, 2, 2, 0.92)' : 'rgba(15, 23, 42, 0.9)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 60, 60, 0.3)' : 'rgba(255, 255, 255, 0.2)';
     this.ctx.lineWidth = 1.5;
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, radius, 0, PI * 2);
@@ -788,7 +878,7 @@ export class ShadowSimulator {
     const tipSy = cy - sin(northAngle) * (nLen * 0.65);
 
     // Syd-nål (grå)
-    this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    this.ctx.strokeStyle = isRed ? 'rgba(201, 52, 52, 0.45)' : 'rgba(148, 163, 184, 0.45)';
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
     this.ctx.moveTo(cx, cy);
@@ -816,7 +906,7 @@ export class ShadowSimulator {
     const sunAngle = (this.simData.sunAzimuth - camAz - 90) * rad;
     const sunDotX = cx + cos(sunAngle) * (radius - 2);
     const sunDotY = cy + sin(sunAngle) * (radius - 2);
-    this.ctx.fillStyle = '#fbbf24';
+    this.ctx.fillStyle = isRed ? '#ff6666' : '#fbbf24';
     this.ctx.beginPath();
     this.ctx.arc(sunDotX, sunDotY, 3.5, 0, PI * 2);
     this.ctx.fill();
@@ -825,13 +915,13 @@ export class ShadowSimulator {
     const shadowAngle = (this.simData.shadowAzimuth - camAz - 90) * rad;
     const shadowDotX = cx + cos(shadowAngle) * (radius - 2);
     const shadowDotY = cy + sin(shadowAngle) * (radius - 2);
-    this.ctx.fillStyle = '#38bdf8';
+    this.ctx.fillStyle = isRed ? '#ff3333' : '#38bdf8';
     this.ctx.beginPath();
     this.ctx.arc(shadowDotX, shadowDotY, 2.5, 0, PI * 2);
     this.ctx.fill();
 
     // Lille centrum-prik
-    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillStyle = isRed ? '#ff4d4d' : '#ffffff';
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, 2, 0, PI * 2);
     this.ctx.fill();
@@ -839,7 +929,7 @@ export class ShadowSimulator {
     // Retningstekst under mini-kompas
     const camDirText = `${Math.round(camAz)}° ${AstroCore.getCompassDirection(camAz)}`;
     this.ctx.font = '9px ui-monospace, SFMono-Regular, monospace';
-    this.ctx.fillStyle = '#94a3b8';
+    this.ctx.fillStyle = isRed ? '#c93434' : '#94a3b8';
     this.ctx.textAlign = 'center';
     this.ctx.fillText(camDirText, cx, cy + radius + 10);
 
@@ -850,16 +940,17 @@ export class ShadowSimulator {
     const cx = w * 0.5;
     const cy = h * 0.5;
     const r = Math.min(w, h) * 0.42;
+    const isRed = this.isNightRedMode();
 
-    this.ctx.fillStyle = '#070a12';
+    this.ctx.fillStyle = isRed ? '#080000' : '#070a12';
     this.ctx.fillRect(0, 0, w, h);
     this.ctx.save();
 
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, r, 0, PI * 2);
-    this.ctx.fillStyle = '#0f172a';
+    this.ctx.fillStyle = isRed ? '#140202' : '#0f172a';
     this.ctx.fill();
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    this.ctx.strokeStyle = isRed ? 'rgba(255, 50, 50, 0.25)' : 'rgba(255, 255, 255, 0.15)';
     this.ctx.lineWidth = 2;
     this.ctx.stroke();
 
@@ -877,7 +968,7 @@ export class ShadowSimulator {
       this.ctx.beginPath();
       this.ctx.moveTo(x1, y1);
       this.ctx.lineTo(x2, y2);
-      this.ctx.strokeStyle = isCardinal ? '#38bdf8' : 'rgba(255, 255, 255, 0.12)';
+      this.ctx.strokeStyle = isCardinal ? (isRed ? '#ff4d4d' : '#38bdf8') : isRed ? 'rgba(255, 50, 50, 0.15)' : 'rgba(255, 255, 255, 0.12)';
       this.ctx.lineWidth = isCardinal ? 2 : 1;
       this.ctx.stroke();
 
@@ -887,7 +978,7 @@ export class ShadowSimulator {
         this.ctx.font = isCardinal ? 'bold 12px ui-monospace, monospace' : '9px ui-monospace, monospace';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillStyle = isCardinal ? (degStep === 0 ? '#f43f5e' : '#38bdf8') : '#64748b';
+        this.ctx.fillStyle = isCardinal ? (degStep === 0 ? '#f43f5e' : isRed ? '#ff4d4d' : '#38bdf8') : isRed ? '#8b1e1e' : '#64748b';
 
         const cardinalName = degStep === 0 ? 'N' : degStep === 90 ? 'Ø' : degStep === 180 ? 'S' : degStep === 270 ? 'V' : `${degStep}°`;
         this.ctx.fillText(cardinalName, labelX, labelY);
@@ -895,14 +986,14 @@ export class ShadowSimulator {
     }
 
     if (this.simData.sunTimes?.sunrise && this.simData.sunTimes?.sunset) {
-      const risePos = AstroCore.getSunPosition(this.simData.sunTimes.sunrise, 55.67, 12.56);
-      const setPos = AstroCore.getSunPosition(this.simData.sunTimes.sunset, 55.67, 12.56);
+      const risePos = AstroCore.getSunPosition(this.simData.sunTimes.sunrise, this.simData.lat, this.simData.lng);
+      const setPos = AstroCore.getSunPosition(this.simData.sunTimes.sunset, this.simData.lat, this.simData.lng);
 
       this.ctx.beginPath();
       const startAngle = (risePos.azimuth - 90) * rad;
       const endAngle = (setPos.azimuth - 90) * rad;
       this.ctx.arc(cx, cy, r * 0.75, startAngle, endAngle, false);
-      this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+      this.ctx.strokeStyle = isRed ? 'rgba(255, 77, 77, 0.35)' : 'rgba(245, 158, 11, 0.35)';
       this.ctx.lineWidth = 3;
       this.ctx.stroke();
     }
@@ -911,14 +1002,14 @@ export class ShadowSimulator {
     const sunX = cx + cos(sunAngle) * (r * 0.92);
     const sunY = cy + sin(sunAngle) * (r * 0.92);
 
-    this.ctx.strokeStyle = '#f59e0b';
+    this.ctx.strokeStyle = isRed ? '#ff5533' : '#f59e0b';
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
     this.ctx.moveTo(cx, cy);
     this.ctx.lineTo(sunX, sunY);
     this.ctx.stroke();
 
-    this.ctx.fillStyle = '#fbbf24';
+    this.ctx.fillStyle = isRed ? '#ff6666' : '#fbbf24';
     this.ctx.beginPath();
     this.ctx.arc(sunX, sunY, 8, 0, PI * 2);
     this.ctx.fill();
@@ -929,20 +1020,20 @@ export class ShadowSimulator {
       const shadowX = cx + cos(shadowAngle) * shadowLenPx;
       const shadowY = cy + sin(shadowAngle) * shadowLenPx;
 
-      this.ctx.strokeStyle = '#38bdf8';
+      this.ctx.strokeStyle = isRed ? '#ff3333' : '#38bdf8';
       this.ctx.lineWidth = 3;
       this.ctx.beginPath();
       this.ctx.moveTo(cx, cy);
       this.ctx.lineTo(shadowX, shadowY);
       this.ctx.stroke();
 
-      this.ctx.fillStyle = '#38bdf8';
+      this.ctx.fillStyle = isRed ? '#ff3333' : '#38bdf8';
       this.ctx.beginPath();
       this.ctx.arc(shadowX, shadowY, 5, 0, PI * 2);
       this.ctx.fill();
     }
 
-    this.ctx.fillStyle = '#ffffff';
+    this.ctx.fillStyle = isRed ? '#ff4d4d' : '#ffffff';
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, 4, 0, PI * 2);
     this.ctx.fill();

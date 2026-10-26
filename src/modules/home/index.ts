@@ -43,6 +43,15 @@ export default class HomeModule implements ModuleInstance {
     }
   }
 
+  private static escapeHtml(str: string): string {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   private render(): void {
     const settings = StorageService.getSettings();
     const now = new Date();
@@ -50,6 +59,7 @@ export default class HomeModule implements ModuleInstance {
     const sunTimes = AstroCore.getSunTimes(now, this.currentLocation.lat, this.currentLocation.lng);
     const lightPhase = AstroCore.getLightPhase(sunPos.altitude);
     const lastMod = settings.lastModule !== 'home' ? settings.lastModule : null;
+    const safeLocName = HomeModule.escapeHtml(this.currentLocation.name);
 
     if (this.locationBar) {
       this.locationBar.destroy();
@@ -67,7 +77,7 @@ export default class HomeModule implements ModuleInstance {
             Fotografisk værktøjskasse
           </h1>
           <p style="font-size: 13px; color: var(--text-muted); max-width: 480px; margin: 0 auto; line-height: 1.45;">
-            Professionel fotografisk værktøjskasse. Vejranalyse, sol- og lysretning samt optiske DOF-beregninger samlet i én mobiloptimeret PWA.
+            Professionel fotografisk værktøjskasse. Vejranalyse, sol- og lysretning, optiske DOF-beregninger samt eksponering og ND-filter samlet i én mobiloptimeret PWA.
           </p>
 
           <!-- Aktuel status bar med solinfo -->
@@ -121,7 +131,7 @@ export default class HomeModule implements ModuleInstance {
             <span class="fs-badge badge-weather">Vejr</span>
           </div>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
-            7-døgns fotografisk vejranalyse for ${this.currentLocation.name}. Beregner morgentåge, gylden time-kvalitet, skydække i 3 lag og stjerneklart astro-vindue.
+            7-døgns fotografisk vejranalyse for ${safeLocName}. Beregner morgentåge, gylden time-kvalitet, skydække i 3 lag og stjerneklart astro-vindue.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Solopgang: ${TimeService.formatTime(sunTimes.sunrise)} • Solnedgang: ${TimeService.formatTime(sunTimes.sunset)}</span>
@@ -152,7 +162,7 @@ export default class HomeModule implements ModuleInstance {
             <span class="fs-badge badge-sun">3D & Kort</span>
           </div>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
-            Interaktiv 3D-søger og satellitkort for ${this.currentLocation.name}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
+            Interaktiv 3D-søger og satellitkort for ${safeLocName}. Simulerer solhøjde, azimut, skyggelængde for person/træ/bygning og farvetemperatur gennem døgnet.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
             <span>Aktuel retning: ${sunPos.azimuth.toFixed(0)}° ${AstroCore.getCompassDirection(sunPos.azimuth)}</span>

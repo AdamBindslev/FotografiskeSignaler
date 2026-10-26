@@ -107,6 +107,10 @@ export default class SunModule implements ModuleInstance {
       this.locationBar.destroy();
       this.locationBar = null;
     }
+    if (this.simulator) {
+      this.simulator.destroy();
+      this.simulator = null;
+    }
   }
 
   private render(): void {
@@ -285,10 +289,10 @@ export default class SunModule implements ModuleInstance {
         <div class="fs-card">
           <div class="fs-card-header">
             <span class="fs-card-title">Motiv & Skygge</span>
-            <span class="fs-badge" id="subjectHeightBadge">1.75 m</span>
+            <span class="fs-badge" id="subjectHeightBadge">${this.subjectHeight.toFixed(2).replace('.', ',').replace(',00', ',0')} m</span>
           </div>
 
-          <div class="subject-selector-row">
+          <div class="subject-selector-row" style="grid-template-columns: repeat(4, 1fr);">
             <button class="subject-btn ${this.subjectType === 'person' ? 'active' : ''}" data-subject="person" data-height="1.75">
               <span class="subject-icon">👤</span>
               <span class="subject-name">Person</span>
@@ -301,6 +305,19 @@ export default class SunModule implements ModuleInstance {
               <span class="subject-icon">🏢</span>
               <span class="subject-name">Bygning</span>
             </button>
+            <button class="subject-btn ${this.subjectType === 'custom' ? 'active' : ''}" data-subject="custom" data-height="${this.subjectHeight}">
+              <span class="subject-icon">📏</span>
+              <span class="subject-name">Valgfri</span>
+            </button>
+          </div>
+
+          <!-- Valgfri højde slider -->
+          <div class="fs-slider-wrap" id="customHeightWrap" style="margin-top: 12px; display: ${this.subjectType === 'custom' ? 'flex' : 'none'};">
+            <div class="fs-slider-header">
+              <span class="fs-slider-label">Brugerdefineret højde</span>
+              <span class="fs-slider-val" id="customHeightDisplay">${this.subjectHeight.toFixed(1).replace('.', ',')} m</span>
+            </div>
+            <input type="range" id="customHeightSlider" min="0.5" max="50" step="0.25" value="${this.subjectHeight}">
           </div>
 
           <div style="margin-top: 14px;">
@@ -315,14 +332,7 @@ export default class SunModule implements ModuleInstance {
     if (mountEl) {
       this.locationBar = new LocationBar({
         container: mountEl,
-        accentClass: 'fs-btn-accent-sun',
-        onLocationChange: (loc) => {
-          this.currentLocation = loc;
-          this.updateCalculations();
-          if (this.mapView) {
-            this.mapView.setCenter(loc.lat, loc.lng);
-          }
-        }
+        accentClass: 'fs-btn-accent-sun'
       });
     }
   }
@@ -528,23 +538,45 @@ export default class SunModule implements ModuleInstance {
     });
 
     // Genstandsvælgere
+    const customHeightWrap = this.container.querySelector('#customHeightWrap') as HTMLElement | null;
+    const customHeightSlider = this.container.querySelector('#customHeightSlider') as HTMLInputElement | null;
+    const customHeightDisplay = this.container.querySelector('#customHeightDisplay');
+
     this.container.querySelectorAll('[data-subject]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const target = btn as HTMLElement;
         const type = target.dataset.subject as any;
-        const height = Number(target.dataset.height);
         this.subjectType = type;
-        this.subjectHeight = height;
+
+        if (type !== 'custom') {
+          this.subjectHeight = Number(target.dataset.height);
+          if (customHeightSlider) customHeightSlider.value = String(this.subjectHeight);
+        }
+
+        if (customHeightWrap) {
+          customHeightWrap.style.display = type === 'custom' ? 'flex' : 'none';
+        }
 
         this.container.querySelectorAll('[data-subject]').forEach((b) => b.classList.remove('active'));
         target.classList.add('active');
 
         const badge = this.container.querySelector('#subjectHeightBadge');
-        if (badge) badge.textContent = `${height.toFixed(1)} m`;
+        if (badge) badge.textContent = `${this.subjectHeight.toFixed(2).replace('.', ',').replace(',00', ',0')} m`;
+        if (customHeightDisplay) customHeightDisplay.textContent = `${this.subjectHeight.toFixed(1).replace('.', ',')} m`;
 
-        this.simulator?.setSubjectType(type, height);
+        this.simulator?.setSubjectType(type, this.subjectHeight);
         this.updateCalculations();
       });
+    });
+
+    customHeightSlider?.addEventListener('input', () => {
+      const val = Number(customHeightSlider.value);
+      this.subjectHeight = val;
+      const badge = this.container.querySelector('#subjectHeightBadge');
+      if (badge) badge.textContent = `${val.toFixed(2).replace('.', ',').replace(',00', ',0')} m`;
+      if (customHeightDisplay) customHeightDisplay.textContent = `${val.toFixed(2).replace('.', ',').replace(',00', ',0')} m`;
+      this.simulator?.setSubjectType(this.subjectType, val);
+      this.updateCalculations();
     });
   }
 
@@ -705,7 +737,9 @@ export default class SunModule implements ModuleInstance {
     // Opdater 3D Canvas
     this.simulator?.update(sunPos.altitude, sunPos.azimuth, this.subjectHeight, {
       subjectType: this.subjectType,
-      sunTimes
+      sunTimes,
+      lat,
+      lng
     });
 
     // Opdater Leaflet kort

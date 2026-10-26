@@ -76,4 +76,21 @@ describe('DofEngine - Optiske beregninger', () => {
     expect(DofEngine.formatDistance(15.2)).toBe('15,2 m');
     expect(DofEngine.formatDistance(150)).toBe('150 m');
   });
+
+  it('Beregner uskarphedscirkel (Bokeh) ved uendelig med præcis nærfokus-formel f^2 / (N * (s - f))', () => {
+    const res = DofEngine.calculateDOF({
+      focalLength: 100, // 0.1 m
+      aperture: 2.8,
+      distance: 1.0, // 1.0 m -> s - f = 0.9 m
+      sensor: 'full_frame'
+    });
+
+    // Forventet ved uendelig: (0.1^2 / (2.8 * 0.9)) * 1000 = 10 / 2.52 ≈ 3.968 mm
+    // blurToCocRatio = blurAtInfinityMm / cocMm (3.96825 / 0.029 ≈ 136.84)
+    expect(res.blurToCocRatio * res.cocMm).toBeCloseTo(3.97, 2);
+
+    // Ved selve fokusafstanden (dPlaneM = focusDistM) skal uskarphedscirklen være 0 mm
+    const blurAtFocus = DofEngine.calculateBlurCircleAtDistance(1.0, 1.0, 100, 2.8);
+    expect(blurAtFocus).toBeCloseTo(0, 5);
+  });
 });

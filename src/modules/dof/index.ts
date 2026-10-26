@@ -3,6 +3,7 @@
  */
 
 import { ModuleInstance } from '../../app/ModuleRegistry.ts';
+import { Router } from '../../app/Router.ts';
 import { DofEngine, DofInputParams, DofResult, SENSOR_PRESETS } from './calculations/dof-engine.ts';
 import { DofVisualizer } from './visualization/dof-visualizer.ts';
 import './dof.css';
@@ -318,9 +319,14 @@ export default class DofModule implements ModuleInstance {
             <span class="fs-badge" id="dofDiffractionBadge">Optimal skarphed</span>
           </div>
           <p id="dofDiffractionDesc" style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;"></p>
-          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 8px; margin-bottom: 10px;">
             <span>35mm ækvivalent: <strong id="dofEquivDisplay" style="color: var(--text-main);">50mm f/2.8</strong></span>
             <span>Indgangspupil: <strong id="dofPupilDisplay" style="color: var(--text-main);">17,9 mm</strong></span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+            <button class="fs-btn" id="btnDofToExposure" style="padding: 6px 12px; font-size: 12px; min-height: 32px; color: var(--accent-exposure); border-color: var(--accent-exposure);">
+              Overfør blænde & brændvidde til Eksponering →
+            </button>
           </div>
         </div>
       </div>
@@ -496,6 +502,16 @@ export default class DofModule implements ModuleInstance {
         if (aIdx !== -1) apertureSlider.value = String(aIdx);
 
         this.updateCalculations();
+      });
+    });
+
+    // Overfør til Eksponering
+    this.container.querySelector('#btnDofToExposure')?.addEventListener('click', () => {
+      const sensorInfo = SENSOR_PRESETS[this.currentParams.sensor] || SENSOR_PRESETS.full_frame;
+      Router.navigate('#/eksponering', {
+        aperture: this.currentParams.aperture,
+        focalLength: this.currentParams.focalLength,
+        cropFactor: sensorInfo.cropFactor
       });
     });
   }

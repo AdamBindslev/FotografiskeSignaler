@@ -22,6 +22,15 @@ export class LocationBar {
   private unsubLocation: (() => void) | null = null;
   private debounceTimer: any = null;
 
+  private static escapeHtml(str: string): string {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   constructor(options: LocationBarOptions) {
     this.container = options.container;
     this.onLocationChange = options.onLocationChange;
@@ -51,6 +60,7 @@ export class LocationBar {
 
   public render(): void {
     const savedSpots: PhotoSpot[] = LocationService.getSavedSpots();
+    const safeName = LocationBar.escapeHtml(this.currentLocation.name);
 
     this.container.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: var(--space-2); width: 100%;">
@@ -58,7 +68,7 @@ export class LocationBar {
         <div class="location-bar">
           <div class="loc-info-group" id="locBarToggle" title="Tryk for at søge adresse eller vælge lokation" style="cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="loc-main-name">📍 ${this.currentLocation.name}</span>
+              <span class="loc-main-name">📍 ${safeName}</span>
               <span class="loc-search-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-highlight); color: var(--accent-sun); font-weight: 600;">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <circle cx="11" cy="11" r="8"></circle>
@@ -115,7 +125,7 @@ export class LocationBar {
                 ? `
               <div style="display: flex; flex-direction: column; gap: 8px; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--accent-sun);">
                 <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Navngiv fotospot:</label>
-                <input type="text" id="locBarInputSpotName" value="${this.currentLocation.name}" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--border-highlight); background: var(--bg-surface-elevated); color: var(--text-main); font-size: 13px;">
+                <input type="text" id="locBarInputSpotName" value="${safeName}" style="padding: 8px; border-radius: var(--radius-xs); border: 1px solid var(--border-highlight); background: var(--bg-surface-elevated); color: var(--text-main); font-size: 13px;">
                 <div style="display: flex; gap: 6px; justify-content: flex-end;">
                   <button class="fs-btn" id="locBarBtnCancelSaveSpot" style="padding: 4px 10px; font-size: 11px; min-height: 28px;">Annuller</button>
                   <button class="fs-btn ${this.accentClass}" id="locBarBtnConfirmSaveSpot" style="padding: 4px 12px; font-size: 11px; min-height: 28px;">Gem spot</button>
@@ -148,11 +158,11 @@ export class LocationBar {
                       .map(
                         (spot) => `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-elevated); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); transition: border-color 0.15s ease;">
-                  <div style="cursor: pointer; flex: 1; overflow: hidden;" data-select-spot="${spot.id}">
-                    <strong style="color: var(--text-main); font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${spot.name}</strong>
+                  <div style="cursor: pointer; flex: 1; overflow: hidden;" data-select-spot="${LocationBar.escapeHtml(spot.id)}">
+                    <strong style="color: var(--text-main); font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${LocationBar.escapeHtml(spot.name)}</strong>
                     <span style="color: var(--text-muted); font-size: 11px; font-family: var(--font-mono);">${spot.lat.toFixed(4)}°N, ${spot.lng.toFixed(4)}°Ø</span>
                   </div>
-                  <button class="fs-btn-icon" data-delete-spot="${spot.id}" title="Slet spot" style="width: 28px; height: 28px; border: none; color: var(--text-dim); background: transparent; cursor: pointer;">
+                  <button class="fs-btn-icon" data-delete-spot="${LocationBar.escapeHtml(spot.id)}" title="Slet spot" style="width: 28px; height: 28px; border: none; color: var(--text-dim); background: transparent; cursor: pointer;">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M3 6h18"></path>
                       <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
@@ -201,10 +211,8 @@ export class LocationBar {
       const btn = this.container.querySelector('#locBarGpsBtn') as HTMLElement;
       if (btn) btn.style.opacity = '0.5';
       try {
-        const loc = await LocationService.requestGpsLocation();
-        this.currentLocation = loc;
         this.searchOpen = false;
-        this.render();
+        await LocationService.requestGpsLocation();
       } catch (err) {
         alert((err as Error).message);
       } finally {
@@ -239,7 +247,7 @@ export class LocationBar {
         if (matches.length === 0) {
           resultsContainer.innerHTML = `
             <div style="font-size:12px;color:var(--text-dim);padding:8px;text-align:center;">
-              Ingen adresser eller steder fundet for "${q}"
+              Ingen adresser eller steder fundet for "${LocationBar.escapeHtml(q)}"
             </div>
           `;
           return;
@@ -249,8 +257,8 @@ export class LocationBar {
           .map(
             (m, i) => `
           <div class="search-result-item" data-idx="${i}" style="display:flex;flex-direction:column;padding:8px 10px;background:var(--bg-surface-elevated);border-radius:var(--radius-xs);cursor:pointer;border:1px solid var(--border-subtle);transition:all 0.1s ease;">
-            <strong style="color:var(--text-main);font-size:13px;">📍 ${m.name}</strong>
-            <span style="color:var(--text-muted);font-size:11px;">${m.sub} • <span style="font-family:var(--font-mono);">${m.lat.toFixed(4)}°N, ${m.lng.toFixed(4)}°Ø</span></span>
+            <strong style="color:var(--text-main);font-size:13px;">📍 ${LocationBar.escapeHtml(m.name)}</strong>
+            <span style="color:var(--text-muted);font-size:11px;">${LocationBar.escapeHtml(m.sub)} • <span style="font-family:var(--font-mono);">${m.lat.toFixed(4)}°N, ${m.lng.toFixed(4)}°Ø</span></span>
           </div>
         `
           )
@@ -261,6 +269,7 @@ export class LocationBar {
             const idx = Number((item as HTMLElement).dataset.idx);
             const chosen = matches[idx];
             if (chosen) {
+              this.searchOpen = false;
               LocationService.setLocation({
                 lat: chosen.lat,
                 lng: chosen.lng,
@@ -268,8 +277,6 @@ export class LocationBar {
                 sub: chosen.sub,
                 source: 'search'
               });
-              this.searchOpen = false;
-              this.render();
             }
           });
         });
@@ -307,6 +314,7 @@ export class LocationBar {
         const spots = LocationService.getSavedSpots();
         const found = spots.find((s) => s.id === spotId);
         if (found) {
+          this.searchOpen = false;
           LocationService.setLocation({
             lat: found.lat,
             lng: found.lng,
@@ -314,8 +322,6 @@ export class LocationBar {
             sub: 'Gemt fotospot',
             source: 'search'
           });
-          this.searchOpen = false;
-          this.render();
         }
       });
     });

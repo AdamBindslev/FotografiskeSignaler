@@ -69,10 +69,12 @@ export default class ExposureModule implements ModuleInstance {
 
   // Timer tilstand
   private timerInterval: number | null = null;
+  private timerEndTimeMs: number | null = null;
   private timerRemainingSec: number = 60;
   private timerTotalSec: number = 60;
   private timerPhase: 'exposure' | 'darkframe' | 'finished' | 'idle' = 'idle';
   private timerRunning: boolean = false;
+  private wakeLockSentinel: any = null;
 
   public mount(container: HTMLElement): void {
     this.container = container;
@@ -92,6 +94,38 @@ export default class ExposureModule implements ModuleInstance {
         }
       }
     }
+
+    // Håndter overførsel af blænde & brændvidde fra DOF-modulet
+    let stateUpdated = false;
+    if (context?.aperture !== undefined) {
+      const newAp = ExposureEngine.findClosestValue(Number(context.aperture), STANDARD_APERTURES);
+      this.state.aperture = newAp;
+      if (this.state.isLocked && this.state.baseline) {
+        const targetS = ExposureEngine.solveShutter(this.state.aperture, this.state.iso, this.state.baseline.ev);
+        this.state.shutter = ExposureEngine.findClosestValue(targetS, STANDARD_SHUTTERS);
+      }
+      stateUpdated = true;
+    }
+
+    if (context?.focalLength !== undefined) {
+      this.state.handheldFocal = Math.min(600, Math.max(10, Math.round(Number(context.focalLength))));
+      const focalSlider = this.container.querySelector('#sliderHandheldFocal') as HTMLInputElement | null;
+      if (focalSlider) focalSlider.value = String(this.state.handheldFocal);
+      stateUpdated = true;
+    }
+
+    if (context?.cropFactor !== undefined) {
+      this.state.handheldCrop = ExposureEngine.findClosestValue(Number(context.cropFactor), [1.0, 1.5, 2.0]);
+      const cropSelect = this.container.querySelector('#selectHandheldCrop') as HTMLSelectElement | null;
+      if (cropSelect) cropSelect.value = String(this.state.handheldCrop);
+      stateUpdated = true;
+    }
+
+    if (stateUpdated) {
+      this.syncSlidersFromState();
+      this.updateAllViews();
+      this.saveState();
+    }
   }
 
   public onDeactivate(): void {
@@ -103,6 +137,7 @@ export default class ExposureModule implements ModuleInstance {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
+    this.releaseWakeLock();
     this.visualizer = null;
   }
 
@@ -1066,6 +1101,29 @@ export default class ExposureModule implements ModuleInstance {
   }
 
   // ================= BULB TIMER LOGIK =================
+  private async requestWakeLock(): Promise<void> {
+    try {
+      const nav = navigator as any;
+      if (nav.wakeLock && typeof nav.wakeLock.request === 'function') {
+        this.wakeLockSentinel = await nav.wakeLock.request('screen');
+      }
+    } catch {
+      // Ignorer hvis Wake Lock API ikke understøttes eller afvises af browser
+    }
+  }
+
+  private releaseWakeLock(): void {
+    try {
+      if (this.wakeLockSentinel && typeof this.wakeLockSentinel.release === 'function') {
+        this.wakeLockSentinel.release();
+      }
+    } catch {
+      // Ignorer fejl ved frigivelse
+    } finally {
+      this.wakeLockSentinel = null;
+    }
+  }
+
   private setTimerDuration(seconds: number): void {
     this.state.timerDurationSec = Math.max(1, seconds);
     this.resetTimer();
@@ -1088,6 +1146,9 @@ export default class ExposureModule implements ModuleInstance {
     }
 
     this.timerRunning = true;
+    this.timerEndTimeMs = Date.now() + this.timerRemainingSec * 1000;
+    this.requestWakeLock();
+
     const btn = this.container.querySelector('#btnTimerStartPause');
     if (btn) {
       btn.textContent = 'Pause';
@@ -1097,13 +1158,20 @@ export default class ExposureModule implements ModuleInstance {
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = window.setInterval(() => {
       this.tickTimer();
-    }, 1000);
+    }, 250);
 
     this.updateTimerDisplay();
   }
 
   private pauseTimer(): void {
+    if (this.timerRunning && this.timerEndTimeMs !== null) {
+      const remMs = Math.max(0, this.timerEndTimeMs - Date.now());
+      this.timerRemainingSec = Math.ceil(remMs / 1000);
+    }
     this.timerRunning = false;
+    this.timerEndTimeMs = null;
+    this.releaseWakeLock();
+
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
@@ -1118,6 +1186,9 @@ export default class ExposureModule implements ModuleInstance {
 
   private resetTimer(): void {
     this.timerRunning = false;
+    this.timerEndTimeMs = null;
+    this.releaseWakeLock();
+
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
@@ -1136,9 +1207,11 @@ export default class ExposureModule implements ModuleInstance {
   }
 
   private tickTimer(): void {
-    if (this.timerRemainingSec > 0) {
-      this.timerRemainingSec--;
-    } else {
+    const now = Date.now();
+    const remMs = Math.max(0, (this.timerEndTimeMs ?? now) - now);
+    this.timerRemainingSec = Math.ceil(remMs / 1000);
+
+    if (remMs <= 0) {
       // Fase færdig
       this.playCompletionSound();
       this.triggerHaptic();
@@ -1148,9 +1221,12 @@ export default class ExposureModule implements ModuleInstance {
         this.timerPhase = 'darkframe';
         this.timerTotalSec = this.state.timerDurationSec;
         this.timerRemainingSec = this.timerTotalSec;
+        this.timerEndTimeMs = Date.now() + this.timerTotalSec * 1000;
       } else {
         // Fuldstændig færdig
         this.timerPhase = 'finished';
+        this.timerRemainingSec = 0;
+        this.timerEndTimeMs = null;
         this.pauseTimer();
         const btn = this.container.querySelector('#btnTimerStartPause');
         if (btn) btn.textContent = 'Start Igen';

@@ -19,7 +19,7 @@ export default defineConfig({
       manifest: {
         name: 'Fotografiske Signaler',
         short_name: 'FotoSignaler',
-        description: 'Professionel fotografisk værktøjskasse: Vejr, Sol og DOF samlet i én PWA.',
+        description: 'Professionel fotografisk værktøjskasse: Vejr, Sol, DOF og Eksponering samlet i én PWA.',
         start_url: './',
         scope: './',
         display: 'standalone',
@@ -70,6 +70,34 @@ export default defineConfig({
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 7 // 7 dage
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/server\.arcgisonline\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'esri-satellite-tiles-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 dage
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/(photon\.komoot\.io|geocoding-api\.open-meteo\.com)\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'geocoding-api-cache',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 // 24 timer
               },
               cacheableResponse: {
                 statuses: [0, 200]

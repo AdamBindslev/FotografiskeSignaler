@@ -97,6 +97,69 @@ describe('WeatherEngine - Fotografiske vurderingsmodeller', () => {
     expect(WeatherEngine.getWeatherCodeDescription(95).desc).toBe('Tordenvejr');
   });
 
+  it('Beregner Astro-score ved at kombinere aftentimer (22-23) med næste dags morgentimer (00-04)', () => {
+    const makeHour = (hour: number, cloudTotal: number): HourlyWeather => ({
+      time: `2026-10-21T${String(hour).padStart(2, '0')}:00`,
+      hour,
+      temp: 8,
+      apparentTemp: 7,
+      humidity: 70,
+      dewPoint: 3,
+      spread: 5,
+      precipProb: 0,
+      precipMm: 0,
+      weatherCode: 0,
+      weatherDesc: 'Klar himmel / Skyfrit',
+      weatherIcon: '☀️',
+      cloudTotal,
+      cloudLow: cloudTotal,
+      cloudMid: 0,
+      cloudHigh: 0,
+      visibility: 20000,
+      windSpeed: 2,
+      windDir: 180,
+      windGusts: 3
+    });
+
+    // Dag N havde overskyet morgen (00-04 = 100%), men stjerneklar aften (22-23 = 0%)
+    const dayNHourly: HourlyWeather[] = [
+      makeHour(0, 100),
+      makeHour(1, 100),
+      makeHour(2, 100),
+      makeHour(3, 100),
+      makeHour(4, 100),
+      makeHour(22, 0),
+      makeHour(23, 0)
+    ];
+
+    // Dag N+1 har stjerneklar nat efter midnat (00-04 = 0%)
+    const nextDayMorningHourly: HourlyWeather[] = [
+      makeHour(0, 0),
+      makeHour(1, 0),
+      makeHour(2, 0),
+      makeHour(3, 0),
+      makeHour(4, 0)
+    ];
+
+    const dateObj = new Date('2026-10-21T12:00:00Z');
+    const octSun = AstroCore.getSunTimes(dateObj, 55.67, 12.56);
+    const moon = { phase: 0.02, fraction: 2, name: 'Nymåne', icon: '🌑' };
+
+    const astroScore = WeatherEngine.calculateAstroScore(
+      dayNHourly,
+      octSun,
+      moon,
+      55.67,
+      12.56,
+      dateObj,
+      nextDayMorningHourly
+    );
+
+    expect(astroScore.roundClouds).toBe(0);
+    expect(astroScore.score).toBeGreaterThanOrEqual(85);
+    expect(astroScore.text).toContain('0%');
+  });
+
   describe('WeatherEngine - Tidshåndtering og overskredne tidspunkter (getEventTiming)', () => {
     const today = new Date('2026-10-21T14:00:00');
 

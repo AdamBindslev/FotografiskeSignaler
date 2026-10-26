@@ -252,8 +252,9 @@ export class DofEngine {
       };
     }
 
-    // 10. Bokeh
-    const blurAtInfinityMm = (focalLengthMm * focalLengthMm) / (1000.0 * aperture * s);
+    // 10. Bokeh (sløringscirkel ved uendelig på sensoren i mm: c_inf = f^2 / (N * (s - f)))
+    const sMinusF = Math.max(0.001, s - f);
+    const blurAtInfinityMm = ((f * f) / (N * sMinusF)) * 1000.0;
     const blurToCocRatio = blurAtInfinityMm / cocMm;
 
     let bokehQuality: BokehQuality = {
@@ -342,9 +343,11 @@ export class DofEngine {
     const d = dPlaneM;
 
     if (d === s) return 0;
-    const denominator = N * (s - f) * d;
+    const denominator = N * Math.max(0.001, s - f) * d;
     if (Math.abs(denominator) < 0.000001) return 0;
 
+    // Blur circle på sensoren i meter: c = (f^2 * |d - s|) / (N * d * (s - f))
+    // Omregnes til mm ved at gange med 1000:
     const blurM = Math.abs((f * f * (d - s)) / denominator);
     return blurM * 1000.0;
   }

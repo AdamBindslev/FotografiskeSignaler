@@ -374,7 +374,7 @@ body.theme-night-red .evf-peaking-glow {
   display: none;
 }
 
-.quick-val-btn {
+.dof-container .quick-val-btn {
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -387,13 +387,13 @@ body.theme-night-red .evf-peaking-glow {
   font-family: var(--font-mono);
 }
 
-.quick-val-btn.active {
+.dof-container .quick-val-btn.active {
   background: var(--bg-surface-elevated);
   color: var(--accent-dof);
   border-color: var(--accent-dof);
 }
 
-body.theme-night-red .quick-val-btn.active {
+body.theme-night-red .dof-container .quick-val-btn.active {
   color: #ff4d4d;
   border-color: #ff4d4d;
 }

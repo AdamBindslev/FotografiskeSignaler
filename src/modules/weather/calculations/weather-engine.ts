@@ -177,47 +177,59 @@ export class WeatherEngine {
 
     const hourlyTimes: string[] = data.hourly.time;
     const hourly: HourlyWeather[] = [];
+    const nextDayMorningHourly: HourlyWeather[] = [];
 
     const prefix = `${dayDateStr}T`;
+    const nextDayDateStr = data.daily.time[dayIndex + 1];
+    const nextPrefix = nextDayDateStr ? `${nextDayDateStr}T` : null;
+
+    const buildHourlyEntry = (i: number, t: string): HourlyWeather => {
+      const hour = Number(t.substring(11, 13));
+      const temp = data.hourly.temperature_2m[i];
+      const dew = data.hourly.dew_point_2m[i];
+      const weatherCode = data.hourly.weather_code[i];
+      const descInfo = this.getWeatherCodeDescription(weatherCode);
+
+      return {
+        time: t,
+        hour,
+        temp,
+        apparentTemp: data.hourly.apparent_temperature[i],
+        humidity: data.hourly.relative_humidity_2m[i],
+        dewPoint: dew,
+        spread: +(temp - dew).toFixed(1),
+        precipProb: data.hourly.precipitation_probability[i],
+        precipMm: data.hourly.precipitation[i],
+        weatherCode,
+        weatherDesc: descInfo.desc,
+        weatherIcon: descInfo.icon,
+        cloudTotal: data.hourly.cloud_cover[i],
+        cloudLow: data.hourly.cloud_cover_low[i],
+        cloudMid: data.hourly.cloud_cover_mid[i],
+        cloudHigh: data.hourly.cloud_cover_high[i],
+        visibility: data.hourly.visibility[i],
+        windSpeed: data.hourly.wind_speed_10m[i],
+        windDir: data.hourly.wind_direction_10m[i],
+        windGusts: data.hourly.wind_gusts_10m[i]
+      };
+    };
 
     for (let i = 0; i < hourlyTimes.length; i++) {
       const t = hourlyTimes[i];
       if (t.startsWith(prefix)) {
+        hourly.push(buildHourlyEntry(i, t));
+      } else if (nextPrefix && t.startsWith(nextPrefix)) {
         const hour = Number(t.substring(11, 13));
-        const temp = data.hourly.temperature_2m[i];
-        const dew = data.hourly.dew_point_2m[i];
-        const weatherCode = data.hourly.weather_code[i];
-        const descInfo = this.getWeatherCodeDescription(weatherCode);
-
-        hourly.push({
-          time: t,
-          hour,
-          temp,
-          apparentTemp: data.hourly.apparent_temperature[i],
-          humidity: data.hourly.relative_humidity_2m[i],
-          dewPoint: dew,
-          spread: +(temp - dew).toFixed(1),
-          precipProb: data.hourly.precipitation_probability[i],
-          precipMm: data.hourly.precipitation[i],
-          weatherCode,
-          weatherDesc: descInfo.desc,
-          weatherIcon: descInfo.icon,
-          cloudTotal: data.hourly.cloud_cover[i],
-          cloudLow: data.hourly.cloud_cover_low[i],
-          cloudMid: data.hourly.cloud_cover_mid[i],
-          cloudHigh: data.hourly.cloud_cover_high[i],
-          visibility: data.hourly.visibility[i],
-          windSpeed: data.hourly.wind_speed_10m[i],
-          windDir: data.hourly.wind_direction_10m[i],
-          windGusts: data.hourly.wind_gusts_10m[i]
-        });
+        if (hour <= 4) {
+          nextDayMorningHourly.push(buildHourlyEntry(i, t));
+        }
       }
     }
 
     const fog = this.calculateFogRisk(hourly, sun);
     const goldenHourMorning = this.calculateGoldenHourQuality(hourly, sun.goldenHourMorning, sun.sunrise);
     const goldenHourEvening = this.calculateGoldenHourQuality(hourly, sun.goldenHourEvening, sun.sunset);
-    const astro = this.calculateAstroScore(hourly, sun, moon, lat, lng, date);
+    const astro = this.calculateAstroScore(hourly, sun, moon, lat, lng, date, nextDayMorningHourly);
 
     const daysDanish = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
 
@@ -386,10 +398,20 @@ export class WeatherEngine {
     moon: MoonIllumination,
     lat: number,
     lng: number,
-    date: Date
+    date: Date,
+    nextDayMorningHourly?: HourlyWeather[]
   ): any {
     const hasAstroNight = sun.astronomicalDusk && sun.astronomicalDawn;
-    let nightHours = hourly.filter((h) => h.hour >= 22 || h.hour <= 4);
+    // Kombinér aftentimerne (kl. 22-23 på dag N) med morgentimerne (kl. 00-04 på dag N+1, hvis tilgængelige)
+    let nightHours: HourlyWeather[];
+    if (nextDayMorningHourly && nextDayMorningHourly.length > 0) {
+      nightHours = [
+        ...hourly.filter((h) => h.hour >= 22),
+        ...nextDayMorningHourly.filter((h) => h.hour <= 4)
+      ];
+    } else {
+      nightHours = hourly.filter((h) => h.hour >= 22 || h.hour <= 4);
+    }
     if (nightHours.length === 0) nightHours = hourly.slice(0, 4);
 
     let avgClouds = 0;

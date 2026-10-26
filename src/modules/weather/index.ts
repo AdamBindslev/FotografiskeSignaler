@@ -102,11 +102,7 @@ export default class WeatherModule implements ModuleInstance {
     if (mountEl) {
       this.locationBar = new LocationBar({
         container: mountEl,
-        accentClass: 'fs-btn-accent-weather',
-        onLocationChange: (loc) => {
-          this.currentLocation = loc;
-          this.loadWeather(false);
-        }
+        accentClass: 'fs-btn-accent-weather'
       });
     }
   }

@@ -286,7 +286,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.quick-val-btn {
+.exposure-container .quick-val-btn {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xs);
@@ -299,8 +299,8 @@
   transition: all 0.15s ease;
 }
 
-.quick-val-btn:active,
-.quick-val-btn.active {
+.exposure-container .quick-val-btn:active,
+.exposure-container .quick-val-btn.active {
   background: var(--accent-exposure, #a855f7);
   color: #ffffff;
   border-color: var(--accent-exposure, #a855f7);
@@ -498,7 +498,7 @@ body.theme-night-red .nd-filter-btn.active {
   background: rgba(255, 51, 119, 0.2);
 }
 
-body.theme-night-red .quick-val-btn.active {
+body.theme-night-red .exposure-container .quick-val-btn.active {
   background: #ff3377;
   border-color: #ff3377;
   color: #ffffff;

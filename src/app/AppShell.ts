@@ -198,6 +198,9 @@ export class AppShell {
     if (metaTheme) {
       metaTheme.setAttribute('content', isNight ? '#080000' : '#07080a');
     }
+
+    // Notificer aktive canvas/moduler om temaskift
+    window.dispatchEvent(new CustomEvent('fs-theme-change', { detail: { nightMode: isNight } }));
   }
 
   public static showUpdateToast(onUpdate: () => void): void {
