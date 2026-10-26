@@ -46,6 +46,10 @@ export class AppShell {
 
       <main id="main-content" role="main"></main>
 
+      <footer class="app-credit-footer" role="contentinfo">
+        <span>Udtænkt og udgivet af <strong>Fotografiske Signaler</strong> – se mere og kontakt <a href="https://fotografiskesignaler.dk" target="_blank" rel="noopener noreferrer">fotografiskesignaler.dk</a></span>
+      </footer>
+
       <nav class="app-bottom-nav" aria-label="Hovednavigation" id="bottomNav"></nav>
     `;
 

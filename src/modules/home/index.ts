@@ -229,10 +229,18 @@ export default class HomeModule implements ModuleInstance {
           </div>
         </div>
 
-        <!-- OM PROJEKTET & ASTRO NAT INFO -->
-        <div class="fs-card" style="font-size: 12px; color: var(--text-dim); line-height: 1.5;">
+        <!-- OM PROJEKTET, ASTRO NAT INFO & KONTAKT -->
+        <div class="fs-card" style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 0;">
           <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">Om Fotografiske Signaler PWA</strong>
-          Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
+          <p style="margin-bottom: 10px;">
+            Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
+          </p>
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-muted);">
+            <span>Udtænkt og udgivet af <strong style="color: var(--text-main);">Fotografiske Signaler</strong> – se mere og kontakt</span>
+            <a href="https://fotografiskesignaler.dk" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; color: var(--accent-sun); font-weight: 700; text-decoration: none; padding: 3px 10px; border-radius: var(--radius-full); background: var(--accent-sun-glow); border: 1px solid rgba(245, 158, 11, 0.35);">
+              fotografiskesignaler.dk ↗
+            </a>
+          </div>
         </div>
       </div>
     `;

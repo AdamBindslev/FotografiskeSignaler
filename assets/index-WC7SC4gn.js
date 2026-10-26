@@ -1,4 +1,4 @@
-import{S as g,R as t}from"./index-DvagEI1d.js";import{L as s,A as i,T as o,a as f}from"./LocationBar-CZCNmsGQ.js";class x{container;currentLocation=s.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=s.getLocation(),this.render(),this.unsubLocation=s.subscribe(r=>{this.currentLocation=r,this.render()})}onActivate(){this.currentLocation=s.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}static escapeHtml(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}render(){const e=g.getSettings(),r=new Date,n=i.getSunPosition(r,this.currentLocation.lat,this.currentLocation.lng),a=i.getSunTimes(r,this.currentLocation.lat,this.currentLocation.lng),l=i.getLightPhase(n.altitude),c=e.lastModule!=="home"?e.lastModule:null,d=x.escapeHtml(this.currentLocation.name);this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
+import{S as g,R as t}from"./index-CFv_iHC0.js";import{L as a,A as i,T as o,a as f}from"./LocationBar-CZCNmsGQ.js";class x{container;currentLocation=a.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=a.getLocation(),this.render(),this.unsubLocation=a.subscribe(r=>{this.currentLocation=r,this.render()})}onActivate(){this.currentLocation=a.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}static escapeHtml(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}render(){const e=g.getSettings(),r=new Date,n=i.getSunPosition(r,this.currentLocation.lat,this.currentLocation.lng),s=i.getSunTimes(r,this.currentLocation.lat,this.currentLocation.lng),l=i.getLightPhase(n.altitude),c=e.lastModule!=="home"?e.lastModule:null,d=x.escapeHtml(this.currentLocation.name);this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
         <!-- VELKOMST HERO -->
         <div class="fs-card" style="padding: var(--space-5); text-align: center; border-color: var(--border-highlight); background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(15, 18, 23, 0.9) 100%);">
@@ -18,7 +18,7 @@ import{S as g,R as t}from"./index-DvagEI1d.js";import{L as s,A as i,T as o,a as 
             <span>•</span>
             <span>Sol ${n.altitude>=0?"+":""}${n.altitude.toFixed(0)}° (${n.azimuth.toFixed(0)}° ${i.getCompassDirection(n.azimuth)})</span>
             <span>•</span>
-            <span>Solnedgang: ${o.formatTime(a.sunset)}</span>
+            <span>Solnedgang: ${o.formatTime(s.sunset)}</span>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ import{S as g,R as t}from"./index-DvagEI1d.js";import{L as s,A as i,T as o,a as 
             7-døgns fotografisk vejranalyse for ${d}. Beregner morgentåge, gylden time-kvalitet, skydække i 3 lag og stjerneklart astro-vindue.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Solopgang: ${o.formatTime(a.sunrise)} • Solnedgang: ${o.formatTime(a.sunset)}</span>
+            <span>Solopgang: ${o.formatTime(s.sunrise)} • Solnedgang: ${o.formatTime(s.sunset)}</span>
             <span style="color: var(--accent-weather); font-weight: 600;">Åbn Vejr →</span>
           </div>
         </div>
@@ -157,10 +157,18 @@ import{S as g,R as t}from"./index-DvagEI1d.js";import{L as s,A as i,T as o,a as 
           </div>
         </div>
 
-        <!-- OM PROJEKTET & ASTRO NAT INFO -->
-        <div class="fs-card" style="font-size: 12px; color: var(--text-dim); line-height: 1.5;">
+        <!-- OM PROJEKTET, ASTRO NAT INFO & KONTAKT -->
+        <div class="fs-card" style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 0;">
           <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">Om Fotografiske Signaler PWA</strong>
-          Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
+          <p style="margin-bottom: 10px;">
+            Appen kører 100% lokalt i din browser og kan installeres på startskærmen af din mobil. Tryk på måne-ikonet øverst til højre for at aktivere rød nattilstand (skåner nattesynet ved astro- og aftenfotografering).
+          </p>
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-muted);">
+            <span>Udtænkt og udgivet af <strong style="color: var(--text-main);">Fotografiske Signaler</strong> – se mere og kontakt</span>
+            <a href="https://fotografiskesignaler.dk" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; color: var(--accent-sun); font-weight: 700; text-decoration: none; padding: 3px 10px; border-radius: var(--radius-full); background: var(--accent-sun-glow); border: 1px solid rgba(245, 158, 11, 0.35);">
+              fotografiskesignaler.dk ↗
+            </a>
+          </div>
         </div>
       </div>
     `;const p=this.container.querySelector("#homeLocationMount");p&&(this.locationBar=new f({container:p,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{t.navigate("#/vejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{t.navigate("#/sol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{t.navigate("#/dof")}),this.container.querySelector("#cardGoExposure")?.addEventListener("click",()=>{t.navigate("#/eksponering")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=g.getSettings();e.lastModule==="weather"?t.navigate("#/vejr"):e.lastModule==="sun"?t.navigate("#/sol"):e.lastModule==="dof"?t.navigate("#/dof"):e.lastModule==="exposure"&&t.navigate("#/eksponering")})}getModuleName(e){return e==="weather"?"Vejr":e==="sun"?"Sol/Måne":e==="dof"?"DOF":e==="exposure"?"Eksponering":e}}export{x as default};

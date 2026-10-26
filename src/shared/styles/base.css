@@ -47,11 +47,38 @@ html, body {
   display: flex;
   flex-direction: column;
   padding-top: var(--header-height);
-  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
   width: 100%;
   max-width: 768px;
   margin: 0 auto;
   position: relative;
+}
+
+/* Diskret kreditering og kontakt-footer */
+.app-credit-footer {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 6px var(--space-4) calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 12px);
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.app-credit-footer strong {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.app-credit-footer a {
+  color: var(--accent-sun);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-credit-footer a:hover {
+  opacity: 0.85;
 }
 
 /* Modul-containere */
