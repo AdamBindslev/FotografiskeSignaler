@@ -1,4 +1,4 @@
-import{S as g,R as t}from"./index-7VqXDIPq.js";import{L as a,A as i,T as o,a as f}from"./LocationBar-CZCNmsGQ.js";class x{container;currentLocation=a.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=a.getLocation(),this.render(),this.unsubLocation=a.subscribe(r=>{this.currentLocation=r,this.render()})}onActivate(){this.currentLocation=a.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}static escapeHtml(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}render(){const e=g.getSettings(),r=new Date,n=i.getSunPosition(r,this.currentLocation.lat,this.currentLocation.lng),s=i.getSunTimes(r,this.currentLocation.lat,this.currentLocation.lng),l=i.getLightPhase(n.altitude),c=e.lastModule!=="home"?e.lastModule:null,d=x.escapeHtml(this.currentLocation.name);this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
+import{S as g,R as t}from"./index-DZCZpCOA.js";import{L as a,A as n,T as o,a as x}from"./LocationBar-CZCNmsGQ.js";class f{container;currentLocation=a.getLocation();locationBar=null;unsubLocation=null;mount(e){this.container=e,this.currentLocation=a.getLocation(),this.render(),this.unsubLocation=a.subscribe(r=>{this.currentLocation=r,this.render()})}onActivate(){this.currentLocation=a.getLocation(),this.render()}destroy(){this.unsubLocation&&(this.unsubLocation(),this.unsubLocation=null),this.locationBar&&(this.locationBar.destroy(),this.locationBar=null)}static escapeHtml(e){return String(e??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}render(){const e=g.getSettings(),r=new Date,i=n.getSunPosition(r,this.currentLocation.lat,this.currentLocation.lng),s=n.getSunTimes(r,this.currentLocation.lat,this.currentLocation.lng),l=n.getLightPhase(i.altitude),c=e.lastModule!=="home"?e.lastModule:null,d=f.escapeHtml(this.currentLocation.name);this.locationBar&&(this.locationBar.destroy(),this.locationBar=null),this.container.innerHTML=`
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
         <!-- VELKOMST HERO -->
         <div class="fs-card" style="padding: var(--space-5); text-align: center; border-color: var(--border-highlight); background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(15, 18, 23, 0.9) 100%);">
@@ -13,7 +13,7 @@ import{S as g,R as t}from"./index-7VqXDIPq.js";import{L as a,A as i,T as o,a as 
           <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 12px; flex-wrap: wrap;">
             <span style="color: ${l.color}; font-weight: 700;">● ${l.name}</span>
             <span>•</span>
-            <span>Sol ${n.altitude>=0?"+":""}${n.altitude.toFixed(0)}° (${n.azimuth.toFixed(0)}° ${i.getCompassDirection(n.azimuth)})</span>
+            <span>Sol ${i.altitude>=0?"+":""}${i.altitude.toFixed(0)}° (${i.azimuth.toFixed(0)}° ${n.getCompassDirection(i.azimuth)})</span>
             <span>•</span>
             <span>Solnedgang: ${o.formatTime(s.sunset)}</span>
           </div>
@@ -90,7 +90,7 @@ import{S as g,R as t}from"./index-7VqXDIPq.js";import{L as a,A as i,T as o,a as 
             Interaktiv 3D-søger, live kompas og satellitkort for ${d}. Simulerer sol- og måneretning, op-/nedgangsvinkler, skyggelængde og farvetemperatur.
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 8px; font-size: 11px; color: var(--text-dim);">
-            <span>Aktuel solretning: ${n.azimuth.toFixed(0)}° ${i.getCompassDirection(n.azimuth)}</span>
+            <span>Aktuel solretning: ${i.azimuth.toFixed(0)}° ${n.getCompassDirection(i.azimuth)}</span>
             <span style="color: var(--accent-sun); font-weight: 600;">Åbn Sol/Måne →</span>
           </div>
         </div>
@@ -154,6 +154,35 @@ import{S as g,R as t}from"./index-7VqXDIPq.js";import{L as a,A as i,T as o,a as 
           </div>
         </div>
 
+        <!-- FÆLLESSKAB & FEEDBACK PÅ DISCORD -->
+        <div class="fs-card fs-card-discord">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--accent-discord-glow); display: flex; align-items: center; justify-content: center; color: var(--accent-discord);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 style="font-size: 15px; font-weight: 700; color: var(--text-main);">Fotofællesskab & Feedback</h2>
+                <span style="font-size: 11px; color: var(--accent-discord); font-weight: 600; text-transform: uppercase;">Deltag på Discord</span>
+              </div>
+            </div>
+            <span class="fs-badge" style="background: var(--accent-discord-glow); color: var(--accent-discord); border: 1px solid var(--accent-discord);">Community</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-bottom: 12px;">
+            Sparring om fotospots, lysforhold og billeder – samt direkte dialog, ønsker og feedback til udviklingen af Fotografiske Signaler.
+          </p>
+          <div style="display: flex; justify-content: flex-start; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+            <a href="https://discord.gg/kCJW62P6k" target="_blank" rel="noopener noreferrer" class="fs-discord-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+              </svg>
+              <span>Bliv en del af fællesskabet på Discord ↗</span>
+            </a>
+          </div>
+        </div>
+
         <!-- OM PROJEKTET, ASTRO NAT INFO & KONTAKT -->
         <div class="fs-card" style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 0;">
           <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">Om Fotografiske Signaler PWA</strong>
@@ -168,4 +197,4 @@ import{S as g,R as t}from"./index-7VqXDIPq.js";import{L as a,A as i,T as o,a as 
           </div>
         </div>
       </div>
-    `;const p=this.container.querySelector("#homeLocationMount");p&&(this.locationBar=new f({container:p,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{t.navigate("#/vejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{t.navigate("#/sol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{t.navigate("#/dof")}),this.container.querySelector("#cardGoExposure")?.addEventListener("click",()=>{t.navigate("#/eksponering")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=g.getSettings();e.lastModule==="weather"?t.navigate("#/vejr"):e.lastModule==="sun"?t.navigate("#/sol"):e.lastModule==="dof"?t.navigate("#/dof"):e.lastModule==="exposure"&&t.navigate("#/eksponering")})}getModuleName(e){return e==="weather"?"Vejr":e==="sun"?"Sol/Måne":e==="dof"?"DOF":e==="exposure"?"Eksponering":e}}export{x as default};
+    `;const p=this.container.querySelector("#homeLocationMount");p&&(this.locationBar=new x({container:p,accentClass:"fs-btn-accent-sun"})),this.attachEventListeners()}attachEventListeners(){this.container.querySelector("#cardGoWeather")?.addEventListener("click",()=>{t.navigate("#/vejr")}),this.container.querySelector("#cardGoSun")?.addEventListener("click",()=>{t.navigate("#/sol")}),this.container.querySelector("#cardGoDof")?.addEventListener("click",()=>{t.navigate("#/dof")}),this.container.querySelector("#cardGoExposure")?.addEventListener("click",()=>{t.navigate("#/eksponering")}),this.container.querySelector("#btnResumeLast")?.addEventListener("click",()=>{const e=g.getSettings();e.lastModule==="weather"?t.navigate("#/vejr"):e.lastModule==="sun"?t.navigate("#/sol"):e.lastModule==="dof"?t.navigate("#/dof"):e.lastModule==="exposure"&&t.navigate("#/eksponering")})}getModuleName(e){return e==="weather"?"Vejr":e==="sun"?"Sol/Måne":e==="dof"?"DOF":e==="exposure"?"Eksponering":e}}export{f as default};
