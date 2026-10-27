@@ -41,6 +41,9 @@
   --accent-exposure-glow: rgba(168, 85, 247, 0.22);
   --accent-exposure-gradient: linear-gradient(135deg, #c084fc 0%, #7e22ce 100%);
 
+  --accent-discord: #5865f2;         /* Discord blurple */
+  --accent-discord-glow: rgba(88, 101, 242, 0.22);
+
   /* Astro/Fotografiske fasedetaljer */
   --golden-primary: #f59e0b;
   --golden-glow: rgba(245, 158, 11, 0.25);
@@ -124,6 +127,9 @@ body.theme-night-red {
   --accent-exposure: #ff3377;
   --accent-exposure-glow: rgba(255, 51, 119, 0.25);
   --accent-exposure-gradient: linear-gradient(135deg, #ff3377 0%, #990033 100%);
+
+  --accent-discord: #ff4455;
+  --accent-discord-glow: rgba(255, 68, 85, 0.25);
 
   --golden-primary: #ff4444;
   --golden-glow: rgba(255, 68, 68, 0.2);

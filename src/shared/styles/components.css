@@ -687,3 +687,46 @@ body.theme-night-red .pwa-install-banner {
 .location-dropdown-panel {
   animation: slideUp 0.2s ease;
 }
+
+/* DISCORD SEKTIONSKORT & KNAP */
+.fs-card-discord {
+  border-left: 3px solid var(--accent-discord) !important;
+  background: linear-gradient(180deg, rgba(20, 24, 35, 0.95) 0%, rgba(14, 17, 26, 0.92) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+body.theme-night-red .fs-card-discord {
+  background: var(--bg-card);
+  border-left-color: var(--accent-discord) !important;
+}
+
+.fs-discord-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent-discord);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px var(--accent-discord-glow);
+}
+
+body.theme-night-red .fs-discord-btn {
+  background: rgba(255, 50, 70, 0.22);
+  color: var(--text-main) !important;
+  border-color: var(--border-highlight);
+  box-shadow: none;
+}
+
+.fs-discord-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
