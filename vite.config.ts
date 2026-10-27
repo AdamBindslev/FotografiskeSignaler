@@ -14,7 +14,9 @@ export default defineConfig({
         'icons/*.png',
         'icons/*.svg',
         'fotografiske-signaler-wordmark.png',
-        'logo-fs.jpg'
+        'logo-fs.jpg',
+        'og-image.jpg',
+        'og-image.png'
       ],
       manifest: {
         name: 'Fotografiske Signaler',

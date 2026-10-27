@@ -1,0 +1,223 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Mørk luksuriøs baggrund -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#04060a"/>
+      <stop offset="50%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#070a12"/>
+    </linearGradient>
+
+    <!-- Gylden solglød -->
+    <radialGradient id="sunGlowLarge" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32"/>
+      <stop offset="45%" stop-color="#d97706" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Cyan ambient glow -->
+    <radialGradient id="cyanGlow" cx="25%" cy="25%" r="65%">
+      <stop offset="0%" stop-color="#0284c7" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Gylden gradient til tekst -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+
+    <!-- Modul kort gradient -->
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <!-- Ikon-gradienter fra appens icon.svg -->
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0e17"/>
+      <stop offset="50%" stop-color="#121826"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+
+    <radialGradient id="iconSunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="40%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="iconSunDisk" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+
+    <linearGradient id="iconFogGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#cbd5e1" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#94a3b8" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <linearGradient id="iconRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+
+    <!-- Ikon drop shadow -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="28" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <style>
+    .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-weight: 800; font-size: 54px; fill: #ffffff; letter-spacing: -0.5px; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 21px; fill: #94a3b8; font-weight: 400; }
+    .badge-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13px; font-weight: 700; fill: #38bdf8; letter-spacing: 1.5px; }
+    .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 16px; font-weight: 700; fill: #f8fafc; }
+    .card-desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13px; font-weight: 400; fill: #94a3b8; }
+    .url-text { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 15px; font-weight: 600; fill: #f1f5f9; }
+    .viewfinder { stroke: #38bdf8; stroke-width: 2; fill: none; opacity: 0.35; }
+    .viewfinder-text { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; fill: #64748b; font-weight: 600; letter-spacing: 1px; }
+  </style>
+
+  <!-- Baggrund -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Subtile baggrundslys -->
+  <circle cx="200" cy="150" r="460" fill="url(#cyanGlow)"/>
+  <circle cx="930" cy="315" r="430" fill="url(#sunGlowLarge)"/>
+
+  <!-- Fotografisk søger-overlay (Viewfinder rammer i hjørnerne) -->
+  <g class="viewfinder">
+    <!-- Top-venstre -->
+    <path d="M 36 60 L 36 36 L 60 36"/>
+    <!-- Top-højre -->
+    <path d="M 1140 36 L 1164 36 L 1164 60"/>
+    <!-- Bund-venstre -->
+    <path d="M 36 570 L 36 594 L 60 594"/>
+    <!-- Bund-højre -->
+    <path d="M 1140 594 L 1164 594 L 1164 570"/>
+    <!-- Midter-kryds -->
+    <line x1="590" y1="315" x2="610" y2="315" stroke-opacity="0.2"/>
+    <line x1="600" y1="305" x2="600" y2="325" stroke-opacity="0.2"/>
+  </g>
+
+  <!-- Søger informationstekst øverst/nederst -->
+  <text x="50" y="52" class="viewfinder-text">● REC [RAW]</text>
+  <text x="1035" y="52" class="viewfinder-text">1/250s · f/2.8 · ISO 100</text>
+  <text x="1065" y="588" class="viewfinder-text">5000K · AF-C</text>
+
+  <!-- ================= VENSTRE SEKTION: TEKST OG MODULER ================= -->
+  
+  <!-- Kategori badge -->
+  <g transform="translate(70, 85)">
+    <rect width="250" height="30" rx="15" fill="#0369a1" fill-opacity="0.22" stroke="#0ea5e9" stroke-opacity="0.45" stroke-width="1"/>
+    <circle cx="18" cy="15" r="4" fill="#38bdf8"/>
+    <text x="32" y="20" class="badge-text">FOTOGRAFISK APP</text>
+  </g>
+
+  <!-- Hovedoverskrift -->
+  <text x="70" y="172" class="title">
+    Fotografiske <tspan fill="url(#goldGrad)">Signaler</tspan>
+  </text>
+  
+  <!-- Undertekst -->
+  <text x="70" y="214" class="subtitle">
+    Én samlet mobil-optimeret PWA til fotografer i felten
+  </text>
+
+  <!-- 4 Funktionskort (2x2 Grid) -->
+  <!-- Kort 1: Vejr & Tåge -->
+  <g transform="translate(70, 252)">
+    <rect width="272" height="92" rx="14" fill="url(#cardBg)" stroke="#334155" stroke-width="1.2"/>
+    <rect width="272" height="92" rx="14" fill="#38bdf8" fill-opacity="0.03"/>
+    <text x="20" y="38" style="font-size: 22px;">⛅</text>
+    <text x="54" y="36" class="card-title">Vejr &amp; Tåge</text>
+    <text x="20" y="64" class="card-desc">Sigtbarhed, skydække, luftfugtighed</text>
+    <text x="20" y="80" class="card-desc">og time-for-time DMI prognoser</text>
+  </g>
+
+  <!-- Kort 2: Sol & Måne -->
+  <g transform="translate(358, 252)">
+    <rect width="272" height="92" rx="14" fill="url(#cardBg)" stroke="#334155" stroke-width="1.2"/>
+    <rect width="272" height="92" rx="14" fill="#f59e0b" fill-opacity="0.03"/>
+    <text x="20" y="38" style="font-size: 22px;">☀️</text>
+    <text x="54" y="36" class="card-title">Sol &amp; Måne</text>
+    <text x="20" y="64" class="card-desc">Gylden/blå time, månefase, azimut,</text>
+    <text x="20" y="80" class="card-desc">live kompas og 3D AR søger</text>
+  </g>
+
+  <!-- Kort 3: DOF & Hyperfokal -->
+  <g transform="translate(70, 360)">
+    <rect width="272" height="92" rx="14" fill="url(#cardBg)" stroke="#334155" stroke-width="1.2"/>
+    <rect width="272" height="92" rx="14" fill="#818cf8" fill-opacity="0.03"/>
+    <text x="20" y="38" style="font-size: 22px;">📐</text>
+    <text x="54" y="36" class="card-title">DOF &amp; Hyperfokal</text>
+    <text x="20" y="64" class="card-desc">Dybdeskarphed, nær-/fjern-grænse</text>
+    <text x="20" y="80" class="card-desc">og hyperfokalafstand til dit objektiv</text>
+  </g>
+
+  <!-- Kort 4: Eksponering & ND -->
+  <g transform="translate(358, 360)">
+    <rect width="272" height="92" rx="14" fill="url(#cardBg)" stroke="#334155" stroke-width="1.2"/>
+    <rect width="272" height="92" rx="14" fill="#ec4899" fill-opacity="0.03"/>
+    <text x="20" y="38" style="font-size: 22px;">⏱️</text>
+    <text x="54" y="36" class="card-title">Eksponering &amp; ND</text>
+    <text x="20" y="64" class="card-desc">ND-filter beregner, EV-omregner</text>
+    <text x="20" y="80" class="card-desc">og integreret eksponeringstimer</text>
+  </g>
+
+  <!-- Bundlinje: Webadresse og PWA indikator -->
+  <g transform="translate(70, 482)">
+    <rect width="400" height="42" rx="21" fill="#0f172a" fill-opacity="0.9" stroke="#1e293b" stroke-width="1.5"/>
+    <!-- Grøn statusprik -->
+    <circle cx="24" cy="21" r="5" fill="#10b981"/>
+    <circle cx="24" cy="21" r="9" fill="#10b981" fill-opacity="0.25"/>
+    <text x="42" y="27" class="url-text">app.fotografiskesignaler.dk</text>
+    <rect x="315" y="9" width="72" height="24" rx="12" fill="#1e293b"/>
+    <text x="328" y="25" style="font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 700; fill: #94a3b8;">GRATIS</text>
+  </g>
+
+  <!-- ================= HØJRE SEKTION: STORT APP-IKON ================= -->
+  <g transform="translate(750, 130)" filter="url(#dropShadow)">
+    <!-- App Ikon Ramme med afrundede hjørner -->
+    <rect width="360" height="360" rx="78" fill="url(#iconBg)" stroke="#334155" stroke-width="2.5"/>
+
+    <!-- Stjerner på himlen -->
+    <circle cx="78" cy="78" r="2.5" fill="#ffffff" opacity="0.9"/>
+    <circle cx="115" cy="56" r="1.8" fill="#ffffff" opacity="0.6"/>
+    <circle cx="268" cy="67" r="2.5" fill="#ffffff" opacity="0.8"/>
+    <circle cx="296" cy="98" r="2" fill="#ffffff" opacity="0.7"/>
+    <circle cx="67" cy="127" r="1.8" fill="#ffffff" opacity="0.5"/>
+    <circle cx="303" cy="49" r="1.8" fill="#ffffff" opacity="0.6"/>
+
+    <!-- Stjerne-gnist -->
+    <path d="M 155 63 Q 155 74 165 74 Q 155 74 155 84 Q 155 74 144 74 Q 155 74 155 63 Z" fill="#38bdf8" opacity="0.85"/>
+
+    <!-- Ydre blændering / objektiv-glød -->
+    <circle cx="180" cy="180" r="134" fill="none" stroke="url(#iconRingGrad)" stroke-width="4.5" opacity="0.65"/>
+    <circle cx="180" cy="180" r="124" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="5,6" opacity="0.3"/>
+
+    <!-- Solglød -->
+    <circle cx="180" cy="148" r="85" fill="url(#iconSunGlow)" opacity="0.65"/>
+
+    <!-- Solskive -->
+    <circle cx="180" cy="148" r="39" fill="url(#iconSunDisk)"/>
+
+    <!-- Bjergsilhuetter -->
+    <path d="M 63 268 L 134 197 L 183 239 L 232 183 L 297 268 Z" fill="#0f172a" opacity="0.95"/>
+
+    <!-- Tågebånd -->
+    <path d="M 56 232 Q 120 218 183 232 T 304 232" fill="none" stroke="url(#iconFogGrad)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M 67 257 Q 127 268 190 254 T 294 257" fill="none" stroke="url(#iconFogGrad)" stroke-width="13" stroke-linecap="round"/>
+    <path d="M 85 282 Q 169 271 276 282" fill="none" stroke="url(#iconFogGrad)" stroke-width="11" stroke-linecap="round" opacity="0.7"/>
+
+    <!-- Objektiv-inddelinger -->
+    <circle cx="180" cy="180" r="151" fill="none" stroke="#64748b" stroke-width="1.5" opacity="0.35"/>
+    <line x1="180" y1="25" x2="180" y2="34" stroke="#f59e0b" stroke-width="3" stroke-linecap="round"/>
+    <line x1="180" y1="326" x2="180" y2="335" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="25" y1="180" x2="34" y2="180" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="326" y1="180" x2="335" y2="180" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+</svg>
