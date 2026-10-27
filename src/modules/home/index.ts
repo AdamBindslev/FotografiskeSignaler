@@ -70,9 +70,6 @@ export default class HomeModule implements ModuleInstance {
       <div style="display: flex; flex-direction: column; gap: var(--space-4); width: 100%;">
         <!-- VELKOMST HERO -->
         <div class="fs-card" style="padding: var(--space-5); text-align: center; border-color: var(--border-highlight); background: linear-gradient(180deg, rgba(22, 27, 34, 0.95) 0%, rgba(15, 18, 23, 0.9) 100%);">
-          <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-            <img src="fotografiske-signaler-wordmark.png" alt="Fotografiske Signaler" style="max-height: 48px; width: auto;" onerror="this.style.display='none'">
-          </div>
           <h1 style="font-size: 1.4rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">
             Fotografisk værktøjskasse
           </h1>
