@@ -269,7 +269,6 @@ body.theme-night-red .btn-live-compass.active {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
 }
 
 .sun-planner-header {
@@ -457,6 +456,121 @@ body.theme-night-red .sun-date-box-main svg {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-3);
+  gap: 8px;
+}
+
+.timeline-time-display-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-time-main {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.timeline-time-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-sun);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.sun-container.mode-moon .timeline-time-sub {
+  color: #c084fc;
+}
+
+body.theme-night-red .timeline-time-sub {
+  color: #ff4d4d;
+}
+
+/* SLIDER BEHOLDER MED FLYDENDE TIDSBOBLE OG 24T AKSE */
+.sun-slider-container {
+  position: relative;
+  margin-bottom: var(--space-2);
+  padding-top: 22px;
+}
+
+.sun-slider-bubble {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--accent-sun);
+  color: var(--accent-sun);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.15s ease, color 0.15s ease;
+  z-index: 5;
+}
+
+.sun-slider-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid var(--accent-sun);
+}
+
+.sun-container.mode-moon .sun-slider-bubble {
+  border-color: #a855f7;
+  color: #e9d5ff;
+}
+
+.sun-container.mode-moon .sun-slider-bubble::after {
+  border-top-color: #a855f7;
+}
+
+body.theme-night-red .sun-slider-bubble {
+  border-color: #ff4d4d;
+  color: #ff4d4d;
+}
+
+body.theme-night-red .sun-slider-bubble::after {
+  border-top-color: #ff4d4d;
+}
+
+.sun-slider-container:focus-within .sun-slider-bubble,
+.sun-slider-container:hover .sun-slider-bubble {
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.sun-container.mode-moon .sun-slider-container:focus-within .sun-slider-bubble,
+.sun-container.mode-moon .sun-slider-container:hover .sun-slider-bubble {
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.45);
+}
+
+.sun-slider-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 0 2px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  user-select: none;
 }
 
 .playback-btns {

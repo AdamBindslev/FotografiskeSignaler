@@ -256,6 +256,50 @@ export default class SunModule implements ModuleInstance {
 
         <!-- TIDSLINJE, DATO & SCRUBBER -->
         <div class="timeline-card">
+          <!-- TIDSKONTROL, LIVETID & SLIDER (PLACERET ØVERST LIGE UNDER SCENEN) -->
+          <div class="sun-scrubber-section">
+            <div class="timeline-controls-row">
+              <div class="playback-btns">
+                <button class="btn-play-pause" id="btnPlayPause" title="Start/Pause tidsanimation" aria-label="Afspil">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                </button>
+                <button class="btn-speed-badge" id="btnSpeedToggle" title="Skift afspilningshastighed">1x</button>
+              </div>
+
+              <!-- CENTRERET LIVETID & FASE LIGE VED SLIDEREN -->
+              <div class="timeline-time-display-wrap">
+                <div class="timeline-time-main" id="sunScrubberTimeVal">${TimeService.formatTime(this.currentDate)}</div>
+                <div class="timeline-time-sub" id="sunScrubberPhasePill">Gylden time</div>
+              </div>
+
+              <button class="fs-btn" id="btnJumpNow" style="padding: 4px 10px; font-size: 11px; min-height: 32px;" title="Gå til dags dato og aktuel tid">
+                Nu (I dag)
+              </button>
+            </div>
+
+            <!-- SLIDER MED FLYDENDE TIDSBOBLE OG 24T AKSE -->
+            <div class="fs-slider-wrap sun-slider-container">
+              <div class="sun-slider-bubble" id="sunSliderBubble">${TimeService.formatTime(this.currentDate)}</div>
+              <input type="range" id="sunTimeSlider" min="0" max="1439" step="1" value="${minutesOfDay}" aria-label="Juster tid på døgnet">
+              <div class="sun-slider-scale">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>24:00</span>
+              </div>
+            </div>
+
+            <!-- HURTIGE SPRING I DØGNET -->
+            <div class="sun-jump-scroll" id="sunQuickJumps">
+              <!-- Udfyldes dynamisk ud fra dagens astronomiske soltider -->
+            </div>
+          </div>
+
+          <div class="sun-timeline-divider"></div>
+
           <!-- DATO-VÆLGER OG PLANLÆGNING (§7) -->
           <div class="sun-planner-section">
             <div class="sun-planner-header">
@@ -316,31 +360,6 @@ export default class SunModule implements ModuleInstance {
               <button class="sun-preset-pill" data-preset="winter-solstice" title="Vintersolhverv (21. dec)">❄️ Vintersolhverv</button>
               <button class="sun-preset-pill" data-preset="spring-equinox" title="Forårsjævndøgn (20. mar)">🌱 Forårsjævndøgn</button>
             </div>
-          </div>
-
-          <div class="sun-timeline-divider"></div>
-
-          <div class="timeline-controls-row">
-            <div class="playback-btns">
-              <button class="btn-play-pause" id="btnPlayPause" title="Start/Pause tidsanimation" aria-label="Afspil">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-              </button>
-              <button class="btn-speed-badge" id="btnSpeedToggle">1x</button>
-            </div>
-            <button class="fs-btn" id="btnJumpNow" style="padding: 4px 10px; font-size: 11px; min-height: 32px;" title="Gå til dags dato og aktuel tid">
-              Nu (I dag)
-            </button>
-          </div>
-
-          <div class="fs-slider-wrap">
-            <input type="range" id="sunTimeSlider" min="0" max="1439" step="1" value="${minutesOfDay}">
-          </div>
-
-          <!-- HURTIGE SPRING I DØGNET -->
-          <div class="sun-jump-scroll" id="sunQuickJumps">
-            <!-- Udfyldes dynamisk ud fra dagens astronomiske soltider -->
           </div>
         </div>
 
@@ -927,6 +946,14 @@ export default class SunModule implements ModuleInstance {
     }
   }
 
+  private updateSliderBubble(minutes: number): void {
+    const bubble = this.container.querySelector('#sunSliderBubble') as HTMLElement | null;
+    if (!bubble) return;
+    const pct = Math.max(0, Math.min(1, minutes / 1439));
+    bubble.style.left = `calc(${pct * 100}% + ${(0.5 - pct) * 20}px)`;
+    bubble.textContent = TimeService.formatTime(this.currentDate);
+  }
+
   private updateLocationDisplay(): void {
     const nameEl = this.container.querySelector('#sunLocName');
     const coordsEl = this.container.querySelector('#sunLocCoords');
@@ -1115,6 +1142,21 @@ export default class SunModule implements ModuleInstance {
         );
       }
     }
+
+    // Opdater scrubber-tid og fase lige over slideren
+    const scrubberTimeEl = this.container.querySelector('#sunScrubberTimeVal');
+    const scrubberPhaseEl = this.container.querySelector('#sunScrubberPhasePill');
+    if (scrubberTimeEl) scrubberTimeEl.textContent = TimeService.formatTime(this.currentDate);
+    if (scrubberPhaseEl) {
+      if (!isMoon) {
+        const shadowCalc = AstroCore.calculateShadow(sunPos.altitude, sunPos.azimuth, this.subjectHeight);
+        scrubberPhaseEl.textContent = `${shadowCalc.lightPhase.name} • ${sunPos.altitude >= 0 ? '+' : ''}${sunPos.altitude.toFixed(1)}°`;
+      } else {
+        scrubberPhaseEl.textContent = `${moonIllum.name} (${moonIllum.fraction}%) • ${moonPos.altitude >= 0 ? '+' : ''}${moonPos.altitude.toFixed(1)}°`;
+      }
+    }
+    const currentMins = this.currentDate.getHours() * 60 + this.currentDate.getMinutes();
+    this.updateSliderBubble(currentMins);
 
     // Render hurtige spring pills (tilpasset Sol eller Måne)
     this.renderQuickJumps(sunTimes, moonTimes);
