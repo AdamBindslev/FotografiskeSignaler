@@ -684,8 +684,8 @@ export default class SunModule implements ModuleInstance {
       this.pausePlayback();
       const now = new Date();
       TimeService.setTimeToNow();
-      timeSlider.value = String(now.getHours() * 60 + now.getMinutes());
-      this.setDate(now);
+      this.setDate(now, false);
+      this.simulator?.resetCamera('default');
     });
 
     // Genstandsvælgere
@@ -869,18 +869,28 @@ export default class SunModule implements ModuleInstance {
     }
   }
 
-  private setDate(newDate: Date): void {
-    const hours = this.currentDate.getHours();
-    const minutes = this.currentDate.getMinutes();
-    const seconds = this.currentDate.getSeconds();
-    this.currentDate = new Date(newDate);
-    this.currentDate.setHours(hours, minutes, seconds, 0);
+  private setDate(newDate: Date, preserveTime: boolean = true): void {
+    if (preserveTime) {
+      const hours = this.currentDate.getHours();
+      const minutes = this.currentDate.getMinutes();
+      const seconds = this.currentDate.getSeconds();
+      this.currentDate = new Date(newDate);
+      this.currentDate.setHours(hours, minutes, seconds, 0);
+    } else {
+      this.currentDate = new Date(newDate);
+    }
 
     TimeService.setDate(this.currentDate);
 
     const dateInput = this.container.querySelector('#sunDatePickerInput') as HTMLInputElement;
     if (dateInput) {
       dateInput.value = TimeService.formatIsoDate(this.currentDate);
+    }
+
+    const slider = this.container.querySelector('#sunTimeSlider') as HTMLInputElement | null;
+    if (slider) {
+      const minutes = this.currentDate.getHours() * 60 + this.currentDate.getMinutes();
+      slider.value = String(minutes);
     }
 
     this.updateCalculations();
