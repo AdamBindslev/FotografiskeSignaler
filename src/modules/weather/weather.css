@@ -164,6 +164,68 @@
   border: 1px solid var(--border-subtle);
 }
 
+.photo-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--fog-primary, #94a3b8);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  white-space: nowrap;
+}
+
+.photo-type-badge.badge-dense-fog {
+  background: rgba(100, 116, 139, 0.25);
+  color: #cbd5e1;
+  border-color: rgba(203, 213, 225, 0.4);
+}
+
+.photo-type-badge.badge-radiation-mist {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.photo-type-badge.badge-night-fog {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.photo-type-badge.badge-day-fog {
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.photo-type-badge.badge-all-day {
+  background: rgba(148, 163, 184, 0.25);
+  color: #f1f5f9;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.photo-type-badge.badge-clear {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--text-dim);
+  border-color: var(--border-subtle);
+}
+
+.photo-card-tip {
+  font-size: 12px;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--accent-weather, #38bdf8);
+  padding: 6px 10px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
 .photo-card-time {
   font-size: 12px;
   color: var(--text-muted);

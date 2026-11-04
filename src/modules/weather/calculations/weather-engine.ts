@@ -50,6 +50,15 @@ export interface DayForecast {
     avgHumidity: number;
     avgWind: string;
     minVisibilityKm: string;
+    fogType: 'dense_fog' | 'radiation_mist' | 'clear';
+    typeName: string;
+    typeBadge: string;
+    badgeClass: string;
+    photoTip: string;
+    period: 'night' | 'morning' | 'day' | 'evening' | 'all_day' | 'none';
+    timeWindowLabel: string;
+    startTime: Date | null;
+    endTime: Date | null;
   };
   goldenHourMorning: {
     score: number;
@@ -226,7 +235,7 @@ export class WeatherEngine {
       }
     }
 
-    const fog = this.calculateFogRisk(hourly, sun);
+    const fog = this.calculateFogRisk(hourly, sun, date);
     const goldenHourMorning = this.calculateGoldenHourQuality(hourly, sun.goldenHourMorning, sun.sunrise);
     const goldenHourEvening = this.calculateGoldenHourQuality(hourly, sun.goldenHourEvening, sun.sunset);
     const astro = this.calculateAstroScore(hourly, sun, moon, lat, lng, date, nextDayMorningHourly);
@@ -253,79 +262,307 @@ export class WeatherEngine {
     };
   }
 
-  public static calculateFogRisk(hourly: HourlyWeather[], sun: SunTimes): any {
+  public static calculateFogRisk(hourly: HourlyWeather[], sun: SunTimes, targetDate?: Date): any {
+    const baseDate = targetDate || (sun.sunrise ? new Date(sun.sunrise.getTime()) : new Date());
+
     if (!hourly || hourly.length === 0) {
-      return { score: 0, level: 'Ukendt', text: 'Ingen vejrdata tilgængelig', icon: '❓', classType: 'low' };
+      return {
+        score: 0,
+        level: 'Ukendt',
+        text: 'Ingen vejrdata tilgængelig',
+        icon: '❓',
+        classType: 'low',
+        fogType: 'clear',
+        typeName: 'Morgentåge & Dis',
+        typeBadge: 'Ingen data',
+        badgeClass: 'badge-clear',
+        photoTip: 'Ingen vejrmeldinger tilgængelige.',
+        avgSpread: '0.0',
+        avgHumidity: 0,
+        avgWind: '0.0',
+        minVisibilityKm: '0.0',
+        period: 'none',
+        timeWindowLabel: 'Ingen data',
+        startTime: null,
+        endTime: null
+      };
     }
 
     const sunriseHour = sun.sunrise ? sun.sunrise.getHours() : 6;
-    const startHour = Math.max(0, sunriseHour - 3);
-    const endHour = Math.min(23, sunriseHour + 1);
+    const sunsetHour = sun.sunset ? sun.sunset.getHours() : 18;
 
-    const relevantHours = hourly.filter((h) => h.hour >= startHour && h.hour <= endHour);
-    if (relevantHours.length === 0) {
-      return { score: 10, level: 'Lav', text: 'Lav tågerisiko', icon: '☀️', classType: 'low' };
+    // Helper til at score en enkelt times tågebetingelser (0-100)
+    const scoreHour = (h: HourlyWeather): number => {
+      let pts = 0;
+      if (h.spread <= 0.5) pts += 40;
+      else if (h.spread <= 1.2) pts += 32;
+      else if (h.spread <= 2.2) pts += 20;
+      else if (h.spread <= 3.5) pts += 10;
+
+      if (h.humidity >= 96) pts += 30;
+      else if (h.humidity >= 92) pts += 24;
+      else if (h.humidity >= 88) pts += 16;
+      else if (h.humidity >= 80) pts += 8;
+
+      const isDenseSignal = h.weatherCode === 45 || h.weatherCode === 48 || h.visibility <= 1000;
+      if (isDenseSignal) {
+        if (h.windSpeed <= 3.0) pts += 20;
+        else if (h.windSpeed <= 5.0) pts += 14;
+        else if (h.windSpeed <= 7.0) pts += 6;
+        else pts -= 10;
+        pts += 20;
+      } else {
+        if (h.windSpeed <= 2.0) pts += 20;
+        else if (h.windSpeed <= 3.5) pts += 14;
+        else if (h.windSpeed <= 5.0) pts += 6;
+        else pts -= 15;
+        if (h.visibility <= 4000) pts += 12;
+      }
+      return Math.min(100, Math.max(0, pts));
+    };
+
+    // Vurder samtlige 24 timer i døgnet
+    const hourScores = hourly.map((h) => ({ hour: h.hour, item: h, score: scoreHour(h) }));
+    const fogHours = hourScores.filter((h) => h.score >= 35);
+
+    // Hvis ingen timer overskrider grænsen for tåge/dis, tjekkes standard daggrysvindue
+    if (fogHours.length === 0) {
+      const morningStart = Math.max(0, sunriseHour - 3);
+      const morningEnd = Math.min(23, sunriseHour + 1);
+      const morningList = hourly.filter((h) => h.hour >= morningStart && h.hour <= morningEnd);
+      const fallbackList = morningList.length > 0 ? morningList : hourly.slice(0, 4);
+
+      let avgSpread = 0;
+      let avgHumidity = 0;
+      let avgWind = 0;
+      let minVisibility = 99999;
+      fallbackList.forEach((h) => {
+        avgSpread += h.spread;
+        avgHumidity += h.humidity;
+        avgWind += h.windSpeed;
+        if (h.visibility < minVisibility) minVisibility = h.visibility;
+      });
+      avgSpread /= fallbackList.length;
+      avgHumidity /= fallbackList.length;
+      avgWind /= fallbackList.length;
+
+      const morningScore = Math.max(
+        10,
+        Math.round(fallbackList.reduce((acc, h) => acc + scoreHour(h), 0) / fallbackList.length)
+      );
+
+      const startTime = sun.civilDawn || (sun.sunrise ? new Date(sun.sunrise.getTime() - 45 * 60 * 1000) : null);
+      const endTime = sun.sunriseEnd || (sun.sunrise ? new Date(sun.sunrise.getTime() + 65 * 60 * 1000) : null);
+
+      return {
+        score: morningScore,
+        level: 'Lav',
+        text: 'Lav tågerisiko – klar sigt over landskabet',
+        icon: '☀️',
+        classType: 'low',
+        fogType: 'clear',
+        typeName: 'Morgentåge & Dis',
+        typeBadge: 'Lav risiko',
+        badgeClass: 'badge-clear',
+        photoTip: 'Gode betingelser for rene, kontrastrige solopgangsbilleder uden slørende tåge.',
+        avgSpread: avgSpread.toFixed(1),
+        avgHumidity: Math.round(avgHumidity),
+        avgWind: avgWind.toFixed(1),
+        minVisibilityKm: (minVisibility / 1000).toFixed(1),
+        period: 'morning',
+        timeWindowLabel: `ca. ${TimeService.formatTime(startTime)} - ${TimeService.formatTime(endTime)}`,
+        startTime,
+        endTime
+      };
     }
 
+    // Grupper tågetimer efter døgnperiode:
+    // Nat: timer om natten og før daggry (<= sunriseHour - 2 eller >= sunsetHour + 2)
+    // Morgen: omkring solopgang (sunriseHour - 1 til sunriseHour + 2)
+    // Dag: midt på dagen (sunriseHour + 3 til sunsetHour - 2)
+    // Aften: omkring solnedgang (sunsetHour - 1 til sunsetHour + 1)
+    const nightGroup = fogHours.filter((h) => h.hour <= sunriseHour - 2 || h.hour >= sunsetHour + 2);
+    const morningGroup = fogHours.filter((h) => h.hour >= sunriseHour - 1 && h.hour <= sunriseHour + 2);
+    const dayGroup = fogHours.filter((h) => h.hour > sunriseHour + 2 && h.hour < sunsetHour - 1);
+    const eveningGroup = fogHours.filter((h) => h.hour >= sunsetHour - 1 && h.hour <= sunsetHour + 1);
+
+    let period: 'night' | 'morning' | 'day' | 'evening' | 'all_day' = 'morning';
+    let dominantGroup = fogHours;
+
+    if (fogHours.length >= 9 || (morningGroup.length >= 3 && dayGroup.length >= 3 && eveningGroup.length >= 2)) {
+      period = 'all_day';
+      dominantGroup = fogHours;
+    } else {
+      const counts = [
+        { period: 'night' as const, group: nightGroup, weight: nightGroup.reduce((a, b) => a + b.score, 0) },
+        { period: 'morning' as const, group: morningGroup, weight: morningGroup.reduce((a, b) => a + b.score, 0) },
+        { period: 'evening' as const, group: eveningGroup, weight: eveningGroup.reduce((a, b) => a + b.score, 0) },
+        { period: 'day' as const, group: dayGroup, weight: dayGroup.reduce((a, b) => a + b.score, 0) }
+      ].filter((c) => c.group.length > 0);
+
+      counts.sort((a, b) => b.weight - a.weight);
+      if (counts.length > 0) {
+        period = counts[0].period;
+        dominantGroup = counts[0].group;
+      }
+    }
+
+    // Beregn værdier for den dominerende tågegruppe
     let avgSpread = 0;
     let avgHumidity = 0;
     let avgWind = 0;
     let minVisibility = 99999;
     let hasFogWeatherCode = false;
+    let avgLowClouds = 0;
+    let totalScore = 0;
 
-    relevantHours.forEach((h) => {
+    dominantGroup.forEach((item) => {
+      const h = item.item;
       avgSpread += h.spread;
       avgHumidity += h.humidity;
       avgWind += h.windSpeed;
+      avgLowClouds += h.cloudLow || 0;
       if (h.visibility < minVisibility) minVisibility = h.visibility;
       if (h.weatherCode === 45 || h.weatherCode === 48) hasFogWeatherCode = true;
+      totalScore += item.score;
     });
 
-    avgSpread /= relevantHours.length;
-    avgHumidity /= relevantHours.length;
-    avgWind /= relevantHours.length;
+    avgSpread /= dominantGroup.length;
+    avgHumidity /= dominantGroup.length;
+    avgWind /= dominantGroup.length;
+    avgLowClouds /= dominantGroup.length;
+    const finalScore = Math.min(100, Math.round(totalScore / dominantGroup.length));
+    const minVisKm = (minVisibility / 1000).toFixed(1);
 
-    let points = 0;
-    if (avgSpread <= 0.5) points += 40;
-    else if (avgSpread <= 1.2) points += 32;
-    else if (avgSpread <= 2.2) points += 20;
-    else if (avgSpread <= 3.5) points += 10;
+    // Fastlæg start- og sluttidspunkt samt timeWindowLabel
+    let startTime: Date | null = null;
+    let endTime: Date | null = null;
+    let timeWindowLabel = '';
 
-    if (avgHumidity >= 96) points += 30;
-    else if (avgHumidity >= 92) points += 24;
-    else if (avgHumidity >= 88) points += 16;
-    else if (avgHumidity >= 80) points += 8;
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
 
-    if (avgWind <= 2.0) points += 20;
-    else if (avgWind <= 3.5) points += 14;
-    else if (avgWind <= 5.0) points += 6;
-    else points -= 15;
+    if (period === 'all_day') {
+      startTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 0, 0, 0);
+      endTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 23, 59, 59);
+      timeWindowLabel = 'Heldagståge (døgnet rundt)';
+    } else if (period === 'night') {
+      const nightLate = dominantGroup.filter((h) => h.hour >= 18);
+      const nightEarly = dominantGroup.filter((h) => h.hour < 12);
+      if (nightLate.length > 0 && nightEarly.length > 0) {
+        const sH = Math.min(...nightLate.map((h) => h.hour));
+        const eH = Math.max(...nightEarly.map((h) => h.hour));
+        startTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), sH, 0, 0);
+        endTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + 1, eH + 1, 0, 0);
+        timeWindowLabel = `kl. ${pad(sH)}:00 - ${pad(eH + 1)}:00 (i nat)`;
+      } else {
+        const hours = dominantGroup.map((h) => h.hour);
+        const sH = Math.min(...hours);
+        const eH = Math.max(...hours);
+        startTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), sH, 0, 0);
+        endTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), eH + 1, 0, 0);
+        timeWindowLabel = `kl. ${pad(sH)}:00 - ${pad(eH + 1)}:00 (i nat)`;
+      }
+    } else if (period === 'morning' && sun.sunrise) {
+      startTime =
+        sun.civilDawn ||
+        new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), Math.min(...dominantGroup.map((h) => h.hour)), 0, 0);
+      const eH = Math.max(...dominantGroup.map((h) => h.hour));
+      endTime = new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate(),
+        Math.max(eH + 1, sun.sunrise.getHours() + 1),
+        0,
+        0
+      );
+      timeWindowLabel = `ca. ${TimeService.formatTime(startTime)} - ${TimeService.formatTime(endTime)}`;
+    } else {
+      const hours = dominantGroup.map((h) => h.hour);
+      const sH = Math.min(...hours);
+      const eH = Math.max(...hours);
+      startTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), sH, 0, 0);
+      endTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), eH + 1, 0, 0);
+      timeWindowLabel = `kl. ${pad(sH)}:00 - ${pad(eH + 1)}:00`;
+    }
 
-    if (hasFogWeatherCode || minVisibility <= 1000) points += 20;
-    else if (minVisibility <= 4000) points += 12;
+    // Tæt tåge vs Morgendis/slør
+    const isDenseFog =
+      hasFogWeatherCode ||
+      minVisibility <= 1200 ||
+      (avgHumidity >= 96 && avgSpread <= 0.6 && avgLowClouds >= 60) ||
+      (avgHumidity >= 93 && avgSpread <= 0.8 && avgWind >= 2.5);
 
-    const finalScore = Math.min(100, Math.max(0, points));
+    const level = finalScore >= 75 ? 'Meget høj' : finalScore >= 55 ? 'Høj' : 'Moderat';
+    const classType = finalScore >= 55 ? 'high' : 'moderate';
 
-    let level = 'Lav';
-    let text = 'Lav tågerisiko – klar morgensigt';
-    let icon = '☀️';
-    let classType = 'low';
+    // Kontekstuelt indhold og rådgivning baseret på døgnperiode
+    let typeName = 'Morgentåge & Dis';
+    let icon = '🌫️';
+    let typeBadge = 'Tæt tåge';
+    let badgeClass = 'badge-dense-fog';
+    let text = '';
+    let photoTip = '';
 
-    if (finalScore >= 75) {
-      level = 'Meget høj';
-      text = 'Perfekte tågebetingelser! Tæt morgentåge forventes i lavninger og ved søer';
+    if (period === 'night') {
+      typeName = isDenseFog ? 'Tæt Nattåge' : 'Nattåge & Slør';
+      icon = '🌃';
+      badgeClass = 'badge-night-fog';
+      typeBadge = isDenseFog ? 'Nattåge' : 'Natslør';
+      text =
+        minVisibility < 1000
+          ? `Tæt tåge over natten (${timeWindowLabel}, sigtdybde ca. ${Math.round(minVisibility)}m). Gadelygter og billygter skaber markante lyskegler.`
+          : `Tågeslør lægger sig over natten (${timeWindowLabel}). Høj stemning med lysspredning fra gadelygter.`;
+      photoTip =
+        'Magiske forhold for nat- og gadefotografering! Gadelygter, neonskilte og billygter danner filmiske lyskegler (volumetrisk lys) og en stemningsfuld noir-æstetik på tomme gader og stier.';
+    } else if (period === 'all_day') {
+      typeName = 'Massiv Heldagståge';
       icon = '🌫️';
-      classType = 'high';
-    } else if (finalScore >= 55) {
-      level = 'Høj';
-      text = 'Gode chancer for stemningsfuld morgendis og jordtåge';
-      icon = '🌫️';
-      classType = 'high';
-    } else if (finalScore >= 35) {
-      level = 'Moderat';
-      text = 'Mulighed for let dis over enge og vand tidligt om morgenen';
+      badgeClass = 'badge-all-day';
+      typeBadge = 'Heldagståge';
+      text = `Massiv tåge dækker hele døgnet (${timeWindowLabel}) med markant nedsat sigtbarhed (${minVisKm} km). Solen forbliver skjult.`;
+      photoTip =
+        'Heldags-mulighed for melankolske og grafiske serier. Gå efter ensomme træer, strukturer i tågen og minimalistiske kompositioner med en markant forgrund.';
+    } else if (period === 'day') {
+      typeName = isDenseFog ? 'Tæt Dagståge / Havgus' : 'Dagdis & Slør';
       icon = '🌁';
-      classType = 'moderate';
+      badgeClass = 'badge-day-fog';
+      typeBadge = isDenseFog ? 'Dagståge / Havgus' : 'Dagdis';
+      text = `Tåge og nedsat sigtbarhed midt på dagen (${timeWindowLabel}). Det diffuse dagslys udvisker baggrunde og fjerner hårde skygger.`;
+      photoTip =
+        'Perfekt til minimalistisk fotografi, kystlandskaber og rå arkitektur. Det bløde, skyggefrie lys fremhæver former og silhuetter frem for tekstur.';
+    } else if (period === 'evening') {
+      typeName = isDenseFog ? 'Tæt Aftentåge' : 'Aftentåge & Skumring';
+      icon = '🌆';
+      badgeClass = 'badge-dense-fog';
+      typeBadge = isDenseFog ? 'Tæt aftentåge' : 'Aftendis';
+      text = `Tågen trækker ind omkring solnedgang og aften (${timeWindowLabel}). Skumringens blå time blandes med tågens bløde lysdække.`;
+      photoTip =
+        'Udnyt samspillet mellem det blå skumringslys (den blå time) og tågens spredning af de første tændte vindues- og gadelamper til flotte farvekontraster.';
+    } else {
+      // morning
+      if (isDenseFog) {
+        typeName = 'Tæt Morgentåge';
+        icon = '🌫️';
+        badgeClass = 'badge-dense-fog';
+        typeBadge = minVisibility < 1000 ? `Tæt tåge (sigt ${Math.round(minVisibility)}m)` : 'Massiv tåge';
+        text =
+          minVisibility < 1000
+            ? `Massiv og tæt tåge dækker landskabet ved daggry (${timeWindowLabel}, sigtdybde ca. ${Math.round(minVisibility)}m). Tykt dække hvor solen næppe trænger igennem.`
+            : `Massiv og tæt morgentåge (${timeWindowLabel}) med dæmpet, diffust lys.`;
+        photoTip =
+          'Fokusér på minimalistiske kompositioner, grafiske træer, ensomme strukturer og silhuetter før solen brænder igennem.';
+      } else {
+        typeName = 'Morgendis & Jordtåge';
+        icon = finalScore >= 75 ? '🌫️' : '🌁';
+        badgeClass = 'badge-radiation-mist';
+        typeBadge = 'Morgendis / Mosekonebryg';
+        text =
+          finalScore >= 75
+            ? `Perfekte betingelser for eventyrlig morgendis over enge og vand ved solopgang (${timeWindowLabel})! Høj chance for gyldne solstråler (god rays).`
+            : `Gode chancer for stemningsfuld morgendis og lav jordtåge (${timeWindowLabel}) med smuk lagdelt dybde ved solopgang.`;
+        photoTip =
+          'Stil dig i modlys mod solopgangen for at fange gyldne lysstråler (god rays) igennem trækroner eller det lave slør over søer og marker.';
+      }
     }
 
     return {
@@ -334,10 +571,19 @@ export class WeatherEngine {
       text,
       icon,
       classType,
+      fogType: isDenseFog ? 'dense_fog' : 'radiation_mist',
+      typeName,
+      typeBadge,
+      badgeClass,
+      photoTip,
+      period,
+      timeWindowLabel,
+      startTime,
+      endTime,
       avgSpread: avgSpread.toFixed(1),
       avgHumidity: Math.round(avgHumidity),
       avgWind: avgWind.toFixed(1),
-      minVisibilityKm: (minVisibility / 1000).toFixed(1)
+      minVisibilityKm: minVisKm
     };
   }
 
@@ -650,7 +896,10 @@ export class WeatherEngine {
         let label = `I morges • For ${elapsedStr} siden`;
         let sub = `Afsluttet i morges (for ${elapsedStr} siden)`;
 
-        if (eventType === 'evening') {
+        if (eventType === 'fog') {
+          label = `Tågevindue afsluttet • For ${elapsedStr} siden`;
+          sub = `Afsluttet kl. ${TimeService.formatTime(endTime)} (for ${elapsedStr} siden)`;
+        } else if (eventType === 'evening') {
           label = `I aften • For ${elapsedStr} siden`;
           sub = `Afsluttet i aften kl. ${TimeService.formatTime(endTime)}`;
         } else if (eventType === 'astro') {
@@ -688,7 +937,10 @@ export class WeatherEngine {
               ? `I aften/nat • Om ${untilStr} (forventet overskyet)`
               : `I aften/nat • Om ${untilStr}`;
           sub = `Astronomisk nat starter kl. ${TimeService.formatTime(startTime)} (om ${untilStr})`;
-        } else if (eventType === 'fog' || eventType === 'morning') {
+        } else if (eventType === 'fog') {
+          label = `Tågevindue senere i dag • Om ${untilStr}`;
+          sub = `Forventes kl. ${TimeService.formatTime(startTime)} (om ${untilStr})`;
+        } else if (eventType === 'morning') {
           label = `I dag ved daggry • Om ${untilStr}`;
         }
 
@@ -711,7 +963,10 @@ export class WeatherEngine {
       let label = `I morgen • Om ${untilStr}`;
       let sub = `I morgen kl. ${startTime ? TimeService.formatTime(startTime) : '--:--'}`;
 
-      if (eventType === 'fog' || eventType === 'morning') {
+      if (eventType === 'fog') {
+        label = `Tågevindue i morgen • Om ${untilStr}`;
+        sub = `I morgen kl. ${TimeService.formatTime(startTime)} (om ${untilStr})`;
+      } else if (eventType === 'morning') {
         label = `I morgen tidlig • Om ${untilStr}`;
         sub = `I morgen kl. ${TimeService.formatTime(startTime)} (om ${untilStr})`;
       } else if (eventType === 'evening') {
@@ -738,7 +993,10 @@ export class WeatherEngine {
     let label = `${dayName} • Om ${dayIndex} dage`;
     let sub = `${dayName}`;
 
-    if (eventType === 'fog' || eventType === 'morning') {
+    if (eventType === 'fog') {
+      label = `${dayName} • Om ${dayIndex} dage`;
+      sub = `${dayName} kl. ${startTime ? TimeService.formatTime(startTime) : '--:--'}`;
+    } else if (eventType === 'morning') {
       label = `${dayName} morgen • Om ${dayIndex} dage`;
       sub = `${dayName} kl. ${startTime ? TimeService.formatTime(startTime) : '06:00'}`;
     } else if (eventType === 'evening') {

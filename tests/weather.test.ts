@@ -57,6 +57,175 @@ describe('WeatherEngine - Fotografiske vurderingsmodeller', () => {
     expect(fogRes.score).toBeGreaterThanOrEqual(75);
     expect(fogRes.classType).toBe('high');
     expect(fogRes.level).toBe('Meget høj');
+    expect(fogRes.fogType).toBe('dense_fog');
+    expect(fogRes.typeName).toBe('Tæt Morgentåge');
+    expect(fogRes.photoTip).toContain('minimalistiske');
+  });
+
+  it('Registrerer og vejleder korrekt om nattåge med gadelygter og filmisk lys', () => {
+    const nightFogHours: HourlyWeather[] = [
+      {
+        time: '2026-06-21T00:00',
+        hour: 0,
+        temp: 12.0,
+        apparentTemp: 12.0,
+        humidity: 98,
+        dewPoint: 11.8,
+        spread: 0.2,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 45,
+        weatherDesc: 'Tåge',
+        weatherIcon: '🌫️',
+        cloudTotal: 40,
+        cloudLow: 40,
+        cloudMid: 0,
+        cloudHigh: 0,
+        visibility: 400,
+        windSpeed: 1.5,
+        windDir: 180,
+        windGusts: 2.0
+      },
+      {
+        time: '2026-06-21T01:00',
+        hour: 1,
+        temp: 11.5,
+        apparentTemp: 11.5,
+        humidity: 98,
+        dewPoint: 11.3,
+        spread: 0.2,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 45,
+        weatherDesc: 'Tåge',
+        weatherIcon: '🌫️',
+        cloudTotal: 40,
+        cloudLow: 40,
+        cloudMid: 0,
+        cloudHigh: 0,
+        visibility: 300,
+        windSpeed: 1.2,
+        windDir: 180,
+        windGusts: 1.8
+      }
+    ];
+
+    const nightRes = WeatherEngine.calculateFogRisk(nightFogHours, dummySun);
+    expect(nightRes.score).toBeGreaterThanOrEqual(75);
+    expect(nightRes.period).toBe('night');
+    expect(nightRes.typeName).toBe('Tæt Nattåge');
+    expect(nightRes.icon).toBe('🌃');
+    expect(nightRes.badgeClass).toBe('badge-night-fog');
+    expect(nightRes.photoTip).toContain('Gadelygter');
+  });
+
+  it('Registrerer dagståge / havgus midt på dagen', () => {
+    const dayFogHours: HourlyWeather[] = [
+      {
+        time: '2026-06-21T12:00',
+        hour: 12,
+        temp: 14.0,
+        apparentTemp: 14.0,
+        humidity: 97,
+        dewPoint: 13.8,
+        spread: 0.2,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 45,
+        weatherDesc: 'Tåge',
+        weatherIcon: '🌫️',
+        cloudTotal: 100,
+        cloudLow: 100,
+        cloudMid: 0,
+        cloudHigh: 0,
+        visibility: 500,
+        windSpeed: 3.5,
+        windDir: 270,
+        windGusts: 4.5
+      },
+      {
+        time: '2026-06-21T13:00',
+        hour: 13,
+        temp: 14.2,
+        apparentTemp: 14.2,
+        humidity: 96,
+        dewPoint: 13.9,
+        spread: 0.3,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 45,
+        weatherDesc: 'Tåge',
+        weatherIcon: '🌫️',
+        cloudTotal: 100,
+        cloudLow: 100,
+        cloudMid: 0,
+        cloudHigh: 0,
+        visibility: 400,
+        windSpeed: 4.0,
+        windDir: 270,
+        windGusts: 5.0
+      }
+    ];
+
+    const dayRes = WeatherEngine.calculateFogRisk(dayFogHours, dummySun);
+    expect(dayRes.period).toBe('day');
+    expect(dayRes.typeName).toContain('Dagståge');
+    expect(dayRes.typeBadge).toContain('Havgus');
+  });
+
+  it('Klassificerer korrekt strålingståge / morgendis når sigtbarheden er over 1 km og luften er stille', () => {
+    const radiationMistHours: HourlyWeather[] = [
+      {
+        time: '2026-06-21T03:00',
+        hour: 3,
+        temp: 11.0,
+        apparentTemp: 11.0,
+        humidity: 92,
+        dewPoint: 10.2,
+        spread: 0.8,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 2, // Ingen direkte tågekode
+        weatherDesc: 'Let skyet',
+        weatherIcon: '⛅',
+        cloudTotal: 10,
+        cloudLow: 10,
+        cloudMid: 0,
+        cloudHigh: 0,
+        visibility: 3000, // 3 km sigt = dis, ikke massiv tåge
+        windSpeed: 1.0,
+        windDir: 90,
+        windGusts: 1.5
+      },
+      {
+        time: '2026-06-21T04:00',
+        hour: 4,
+        temp: 10.5,
+        apparentTemp: 10.5,
+        humidity: 94,
+        dewPoint: 10.0,
+        spread: 0.5,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 2,
+        weatherDesc: 'Let skyet',
+        weatherIcon: '⛅',
+        cloudTotal: 5,
+        cloudLow: 5,
+        cloudMid: 0,
+        cloudHigh: 0,
+        visibility: 2500,
+        windSpeed: 0.9,
+        windDir: 90,
+        windGusts: 1.2
+      }
+    ];
+
+    const mistRes = WeatherEngine.calculateFogRisk(radiationMistHours, dummySun);
+    expect(mistRes.score).toBeGreaterThanOrEqual(60);
+    expect(mistRes.fogType).toBe('radiation_mist');
+    expect(mistRes.typeName).toBe('Morgendis & Jordtåge');
+    expect(mistRes.photoTip).toContain('modlys');
   });
 
   it('Beregner fremragende solnedgangskvalitet med høje/mellemskyer og fri forgrund', () => {

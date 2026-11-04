@@ -230,8 +230,8 @@ export default class WeatherModule implements ModuleInstance {
     const isTomorrow = this.selectedDayIndex === 1;
 
     // 1. Beregn tidsvinduer og overskredet-status (§6)
-    const fogStart = sun.civilDawn || (sun.sunrise ? new Date(sun.sunrise.getTime() - 45 * 60 * 1000) : null);
-    const fogEnd = sun.sunriseEnd || (sun.sunrise ? new Date(sun.sunrise.getTime() + 65 * 60 * 1000) : null);
+    const fogStart = fog.startTime || sun.civilDawn || (sun.sunrise ? new Date(sun.sunrise.getTime() - 45 * 60 * 1000) : null);
+    const fogEnd = fog.endTime || sun.sunriseEnd || (sun.sunrise ? new Date(sun.sunrise.getTime() + 65 * 60 * 1000) : null);
     const fogTiming: EventTiming = WeatherEngine.getEventTiming(fogStart, fogEnd, this.selectedDayIndex, day.date, 'fog', fog.score, now);
 
     const mStart = (sun.blueHourMorning && sun.blueHourMorning.start) || (sun.sunrise ? new Date(sun.sunrise.getTime() - 50 * 60 * 1000) : null);
@@ -271,8 +271,8 @@ export default class WeatherModule implements ModuleInstance {
         dayBannerSubtitle = "Dagens soltimer er passeret • Tryk 'I morgen' for næste dagslys";
       } else if (fogTiming.status === 'active') {
         dayBannerSubtitle = fog.score >= 50
-          ? `Aktuel nu: Morgentåge & solopgang kl. ${TimeService.formatTime(sun.sunrise)}`
-          : `Aktuel nu: Solopgang & daggry kl. ${TimeService.formatTime(sun.sunrise)}`;
+          ? `Aktuel nu: ${fog.typeName} (${fog.timeWindowLabel || 'aktiv lige nu'})`
+          : `Aktuel nu: ${fog.typeName}`;
       } else if (morningTiming.status === 'active') {
         dayBannerSubtitle = morning.score >= 50 ? 'Aktuel lige nu: Daggry & gylden time!' : 'Aktuel lige nu: Daggry (skydækket morgen)';
       } else if (eveningTiming.status === 'active') {
@@ -420,21 +420,25 @@ export default class WeatherModule implements ModuleInstance {
 
       <!-- FOTOGRAFISKE ANALYSE-KORT -->
       <div class="photo-event-grid" style="margin-top: 14px;">
-        <!-- 1. Morgentåge & Dis -->
+        <!-- 1. Morgentåge & Dis / Tæt Tåge -->
         <div class="photo-card ${fogTiming.isPassed ? 'card-event-passed' : ''}">
           ${renderTimingBanner(fogTiming)}
           <div class="photo-card-top">
-            <span class="photo-card-title">${fog.icon} Morgentåge & Dis</span>
-            <span class="photo-score-badge ${getScoreClass(fog.score)}">${fog.score}/100 • ${fog.level}</span>
+            <span class="photo-card-title">${fog.icon} ${fog.typeName || 'Morgentåge & Dis'}</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+              ${fog.typeBadge ? `<span class="photo-type-badge ${fog.badgeClass || ''}">${fog.typeBadge}</span>` : ''}
+              <span class="photo-score-badge ${getScoreClass(fog.score)}">${fog.score}/100 • ${fog.level}</span>
+            </div>
           </div>
           <div class="photo-card-time">
-            Tidsvindue: ca. ${TimeService.formatTime(fogStart)} - ${TimeService.formatTime(fogEnd)}
-            ${fogTiming.isPassed ? '<span class="time-passed-tag">Afsluttet i morges</span>' : `• ${fogTiming.sub}`}
+            Tidsvindue: ${fog.timeWindowLabel || `ca. ${TimeService.formatTime(fogStart)} - ${TimeService.formatTime(fogEnd)}`}
+            ${fogTiming.isPassed ? '<span class="time-passed-tag">Afsluttet</span>' : `• ${fogTiming.sub}`}
           </div>
           <div class="photo-card-desc">${fog.text}</div>
-          ${renderPassedJump(fogTiming.isPassed, 'Morgentågen fandt sted i morges. Tjek i morgen?', 'Se i morgen tidlig')}
+          ${fog.photoTip ? `<div class="photo-card-tip">💡 <strong>Fototip:</strong> ${fog.photoTip}</div>` : ''}
+          ${renderPassedJump(fogTiming.isPassed, 'Tågeperioden er overstået for i dag. Tjek i morgen?', 'Se tåge i morgen')}
           <div class="photo-card-footer">
-            <span style="font-size:11px;color:var(--text-dim);">Dugpunkt: Δ${fog.avgSpread}°C • Fugt: ${fog.avgHumidity}% • Vind: ${fog.avgWind} m/s</span>
+            <span style="font-size:11px;color:var(--text-dim);">Dugpunkt: Δ${fog.avgSpread}°C • Fugt: ${fog.avgHumidity}% • Vind: ${fog.avgWind} m/s • Sigt: ${fog.minVisibilityKm} km</span>
           </div>
         </div>
 
