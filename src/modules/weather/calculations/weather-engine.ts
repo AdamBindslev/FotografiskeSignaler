@@ -398,30 +398,46 @@ export class WeatherEngine {
       };
     }
 
-    // Grupper tågetimer efter døgnperiode:
-    // Nat: timer om natten og før daggry (<= sunriseHour - 2 eller >= sunsetHour + 2)
-    // Morgen: omkring solopgang (sunriseHour - 1 til sunriseHour + 2)
-    // Dag: midt på dagen (sunriseHour + 3 til sunsetHour - 2)
-    // Aften: omkring solnedgang (sunsetHour - 1 til sunsetHour + 1)
-    const nightGroup = fogHours.filter((h) => h.hour <= sunriseHour - 2 || h.hour >= sunsetHour + 2);
-    const morningGroup = fogHours.filter((h) => h.hour >= sunriseHour - 1 && h.hour <= sunriseHour + 2);
-    const dayGroup = fogHours.filter((h) => h.hour > sunriseHour + 2 && h.hour < sunsetHour - 1);
-    const eveningGroup = fogHours.filter((h) => h.hour >= sunsetHour - 1 && h.hour <= sunsetHour + 1);
+    // 1. Tjek om der er tåge i morgenvinduet (før og omkring solopgang)
+    // Fotografisk er morgentåge ved daggry/solopgang dagens vigtigste begivenhed
+    const morningHours = fogHours.filter((h) => h.hour <= sunriseHour + 3);
+    const hasSunriseFog = morningHours.some(
+      (h) => h.hour >= sunriseHour - 2 && h.hour <= sunriseHour + 2 && (h.score >= 40 || h.item.visibility <= 3000)
+    );
 
-    const middayFog = dayGroup.filter((h) => h.hour >= 11 && h.hour <= 15);
-    const hasMiddayDenseFog = middayFog.some((h) => h.item.weatherCode === 45 || h.item.weatherCode === 48 || h.item.visibility <= 1500);
+    // 2. Tjek om der er tæt tåge midt på dagen (kl. 11-15)
+    const middayFog = fogHours.filter((h) => h.hour >= 11 && h.hour <= 15);
+    const hasMiddayDenseFog = middayFog.some(
+      (h) => h.item.weatherCode === 45 || h.item.weatherCode === 48 || h.item.visibility <= 1500
+    );
 
     let period: 'night' | 'morning' | 'day' | 'evening' | 'all_day' = 'morning';
     let dominantGroup = fogHours;
 
-    // Heldagståge kræver at der BÅDE er tåge om morgenen/natten OG reel tæt tåge midt på dagen
     if (fogHours.length >= 8 && hasMiddayDenseFog && middayFog.length >= 3) {
+      // Reel heldagståge der fortsætter uafbrudt henover middag
       period = 'all_day';
       dominantGroup = fogHours;
+    } else if (hasSunriseFog && morningHours.length >= 2) {
+      // Prioriter altid morgentåge hvis der er tåge omkring daggry og solopgang
+      period = 'morning';
+      dominantGroup = morningHours;
     } else {
+      // Ellers vurder separat nat, aften eller dag
+      const nightLateGroup = fogHours.filter((h) => h.hour >= sunsetHour + 2);
+      const nightEarlyGroup = fogHours.filter((h) => h.hour <= sunriseHour - 3);
+      const eveningGroup = fogHours.filter((h) => h.hour >= sunsetHour - 1 && h.hour <= sunsetHour + 1);
+      const dayGroup = fogHours.filter((h) => h.hour > sunriseHour + 2 && h.hour < sunsetHour - 1);
+
       const counts = [
-        { period: 'morning' as const, group: morningGroup, weight: morningGroup.reduce((a, b) => a + b.score, 0) },
-        { period: 'night' as const, group: nightGroup, weight: nightGroup.reduce((a, b) => a + b.score, 0) },
+        {
+          period: 'night' as const,
+          group: nightEarlyGroup.length >= nightLateGroup.length ? nightEarlyGroup : nightLateGroup,
+          weight: Math.max(
+            nightEarlyGroup.reduce((a, b) => a + b.score, 0),
+            nightLateGroup.reduce((a, b) => a + b.score, 0)
+          )
+        },
         { period: 'evening' as const, group: eveningGroup, weight: eveningGroup.reduce((a, b) => a + b.score, 0) },
         { period: 'day' as const, group: dayGroup, weight: dayGroup.reduce((a, b) => a + b.score, 0) }
       ].filter((c) => c.group.length > 0);
@@ -488,20 +504,20 @@ export class WeatherEngine {
         endTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), eH + 1, 0, 0);
         timeWindowLabel = `kl. ${pad(sH)}:00 - ${pad(eH + 1)}:00 (i nat)`;
       }
-    } else if (period === 'morning' && sun.sunrise) {
-      startTime =
-        sun.civilDawn ||
-        new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), Math.min(...dominantGroup.map((h) => h.hour)), 0, 0);
-      const eH = Math.max(...dominantGroup.map((h) => h.hour));
+    } else if (period === 'morning') {
+      const hours = dominantGroup.map((h) => h.hour);
+      const sH = Math.min(...hours);
+      const eH = Math.max(...hours);
+      startTime = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), sH, 0, 0);
       endTime = new Date(
         baseDate.getFullYear(),
         baseDate.getMonth(),
         baseDate.getDate(),
-        Math.max(eH + 1, sun.sunrise.getHours() + 1),
+        Math.max(eH + 1, (sun.sunrise?.getHours() || 6) + 1),
         0,
         0
       );
-      timeWindowLabel = `ca. ${TimeService.formatTime(startTime)} - ${TimeService.formatTime(endTime)}`;
+      timeWindowLabel = `ca. ${pad(sH)}:00 - ${pad(eH + 1)}:00`;
     } else {
       const hours = dominantGroup.map((h) => h.hour);
       const sH = Math.min(...hours);
@@ -566,6 +582,7 @@ export class WeatherEngine {
         'Udnyt samspillet mellem det blå skumringslys (den blå time) og tågens spredning af de første tændte vindues- og gadelamper til flotte farvekontraster.';
     } else {
       // morning
+      const sunriseInfo = sun.sunrise ? ` ved daggry og solopgang kl. ${TimeService.formatTime(sun.sunrise)}` : ' ved daggry';
       if (isDenseFog) {
         typeName = 'Tæt Morgentåge';
         icon = '🌫️';
@@ -573,10 +590,10 @@ export class WeatherEngine {
         typeBadge = minVisibility < 1000 ? `Tæt tåge (sigt ${Math.round(minVisibility)}m)` : 'Massiv tåge';
         text =
           minVisibility < 1000
-            ? `Massiv og tæt tåge dækker landskabet ved daggry (${timeWindowLabel}, sigtdybde ca. ${Math.round(minVisibility)}m). Tykt dække hvor solen næppe trænger igennem.`
-            : `Massiv og tæt morgentåge (${timeWindowLabel}) med dæmpet, diffust lys.`;
+            ? `Massiv og tæt tåge dækker landskabet${sunriseInfo} (${timeWindowLabel}, sigtdybde ca. ${Math.round(minVisibility)}m). Tykt dække hvor solen næppe trænger igennem.`
+            : `Massiv og tæt morgentåge (${timeWindowLabel})${sunriseInfo} med dæmpet, diffust lys.`;
         photoTip =
-          'Fokusér på minimalistiske kompositioner, grafiske træer, ensomme strukturer og silhuetter før solen brænder igennem.';
+          `Fokusér på minimalistiske kompositioner, grafiske træer, ensomme strukturer og silhuetter under daggry${sun.sunrise ? ` og solopgang kl. ${TimeService.formatTime(sun.sunrise)}` : ''} før solen bryder igennem.`;
       } else {
         typeName = 'Morgendis & Jordtåge';
         icon = finalScore >= 75 ? '🌫️' : '🌁';
@@ -584,8 +601,8 @@ export class WeatherEngine {
         typeBadge = 'Morgendis / Mosekonebryg';
         text =
           finalScore >= 75
-            ? `Perfekte betingelser for eventyrlig morgendis over enge og vand ved solopgang (${timeWindowLabel})! Høj chance for gyldne solstråler (god rays).`
-            : `Gode chancer for stemningsfuld morgendis og lav jordtåge (${timeWindowLabel}) med smuk lagdelt dybde ved solopgang.`;
+            ? `Perfekte betingelser for eventyrlig morgendis over enge og vand${sunriseInfo} (${timeWindowLabel})! Høj chance for gyldne solstråler (god rays).`
+            : `Gode chancer for stemningsfuld morgendis og lav jordtåge (${timeWindowLabel})${sunriseInfo} med smuk lagdelt dybde ved solopgang.`;
         photoTip =
           'Stil dig i modlys mod solopgangen for at fange gyldne lysstråler (god rays) igennem trækroner eller det lave slør over søer og marker.';
       }
