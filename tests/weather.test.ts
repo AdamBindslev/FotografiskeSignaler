@@ -228,6 +228,60 @@ describe('WeatherEngine - Fotografiske vurderingsmodeller', () => {
     expect(mistRes.photoTip).toContain('modlys');
   });
 
+  it('Ignorerer kold/fugtig efterårsluft med svag vind hvis sigtbarheden er god (over 10 km)', () => {
+    const clearAutumnHours: HourlyWeather[] = [
+      {
+        time: '2026-11-04T12:00',
+        hour: 12,
+        temp: 8.0,
+        apparentTemp: 8.0,
+        humidity: 93,
+        dewPoint: 7.0,
+        spread: 1.0,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 1, // Klart / let skyet
+        weatherDesc: 'Hovedsageligt klart',
+        weatherIcon: '🌤️',
+        cloudTotal: 20,
+        cloudLow: 10,
+        cloudMid: 0,
+        cloudHigh: 10,
+        visibility: 25000, // 25 km = krystalklart
+        windSpeed: 1.4,
+        windDir: 180,
+        windGusts: 2.2
+      },
+      {
+        time: '2026-11-04T13:00',
+        hour: 13,
+        temp: 8.5,
+        apparentTemp: 8.5,
+        humidity: 92,
+        dewPoint: 7.3,
+        spread: 1.2,
+        precipProb: 0,
+        precipMm: 0,
+        weatherCode: 1,
+        weatherDesc: 'Hovedsageligt klart',
+        weatherIcon: '🌤️',
+        cloudTotal: 15,
+        cloudLow: 10,
+        cloudMid: 0,
+        cloudHigh: 5,
+        visibility: 25000,
+        windSpeed: 1.5,
+        windDir: 180,
+        windGusts: 2.5
+      }
+    ];
+
+    const autumnRes = WeatherEngine.calculateFogRisk(clearAutumnHours, dummySun);
+    expect(autumnRes.score).toBeLessThanOrEqual(25);
+    expect(autumnRes.fogType).toBe('clear');
+    expect(autumnRes.level).toBe('Lav');
+  });
+
   it('Beregner fremragende solnedgangskvalitet med høje/mellemskyer og fri forgrund', () => {
     const sunsetHours: HourlyWeather[] = [
       {

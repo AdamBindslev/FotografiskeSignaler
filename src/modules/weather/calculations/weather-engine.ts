@@ -293,32 +293,54 @@ export class WeatherEngine {
 
     // Helper til at score en enkelt times tågebetingelser (0-100)
     const scoreHour = (h: HourlyWeather): number => {
+      const hasFogCode = h.weatherCode === 45 || h.weatherCode === 48;
+      const vis = typeof h.visibility === 'number' ? h.visibility : 10000;
+
+      // Hård stopklods: Hvis sigtbarheden er 10+ km og ingen WMO tågekode, er der klar luft
+      // Uanset hvor koldt, fugtigt eller vindstille det er, er det IKKE tåge!
+      if (!hasFogCode && vis >= 10000) {
+        return 10;
+      }
+      if (!hasFogCode && vis >= 6000) {
+        return 20;
+      }
+
       let pts = 0;
-      if (h.spread <= 0.5) pts += 40;
-      else if (h.spread <= 1.2) pts += 32;
-      else if (h.spread <= 2.2) pts += 20;
-      else if (h.spread <= 3.5) pts += 10;
+      if (h.spread <= 0.5) pts += 35;
+      else if (h.spread <= 1.2) pts += 25;
+      else if (h.spread <= 2.0) pts += 15;
+      else if (h.spread <= 3.0) pts += 5;
 
-      if (h.humidity >= 96) pts += 30;
-      else if (h.humidity >= 92) pts += 24;
-      else if (h.humidity >= 88) pts += 16;
-      else if (h.humidity >= 80) pts += 8;
+      if (h.humidity >= 96) pts += 25;
+      else if (h.humidity >= 92) pts += 18;
+      else if (h.humidity >= 88) pts += 10;
+      else if (h.humidity >= 80) pts += 5;
 
-      const isDenseSignal = h.weatherCode === 45 || h.weatherCode === 48 || h.visibility <= 1000;
+      const isDenseSignal = hasFogCode || vis <= 1000;
       if (isDenseSignal) {
         if (h.windSpeed <= 3.0) pts += 20;
-        else if (h.windSpeed <= 5.0) pts += 14;
-        else if (h.windSpeed <= 7.0) pts += 6;
+        else if (h.windSpeed <= 5.0) pts += 12;
+        else if (h.windSpeed <= 7.0) pts += 5;
         else pts -= 10;
         pts += 20;
       } else {
         if (h.windSpeed <= 2.0) pts += 20;
-        else if (h.windSpeed <= 3.5) pts += 14;
-        else if (h.windSpeed <= 5.0) pts += 6;
+        else if (h.windSpeed <= 3.5) pts += 12;
+        else if (h.windSpeed <= 5.0) pts += 5;
         else pts -= 15;
-        if (h.visibility <= 4000) pts += 12;
+        if (vis <= 4500) pts += 8;
       }
-      return Math.min(100, Math.max(0, pts));
+
+      let score = Math.min(100, Math.max(0, pts));
+
+      // Hårde lofter baseret på reel sigtbarhed når der ikke meldes WMO tågekode
+      if (!hasFogCode) {
+        if (vis > 5000) score = Math.min(score, 25);
+        else if (vis > 3500) score = Math.min(score, 45);
+        else if (vis > 1500) score = Math.min(score, 70);
+      }
+
+      return score;
     };
 
     // Vurder samtlige 24 timer i døgnet
@@ -386,16 +408,20 @@ export class WeatherEngine {
     const dayGroup = fogHours.filter((h) => h.hour > sunriseHour + 2 && h.hour < sunsetHour - 1);
     const eveningGroup = fogHours.filter((h) => h.hour >= sunsetHour - 1 && h.hour <= sunsetHour + 1);
 
+    const middayFog = dayGroup.filter((h) => h.hour >= 11 && h.hour <= 15);
+    const hasMiddayDenseFog = middayFog.some((h) => h.item.weatherCode === 45 || h.item.weatherCode === 48 || h.item.visibility <= 1500);
+
     let period: 'night' | 'morning' | 'day' | 'evening' | 'all_day' = 'morning';
     let dominantGroup = fogHours;
 
-    if (fogHours.length >= 9 || (morningGroup.length >= 3 && dayGroup.length >= 3 && eveningGroup.length >= 2)) {
+    // Heldagståge kræver at der BÅDE er tåge om morgenen/natten OG reel tæt tåge midt på dagen
+    if (fogHours.length >= 8 && hasMiddayDenseFog && middayFog.length >= 3) {
       period = 'all_day';
       dominantGroup = fogHours;
     } else {
       const counts = [
-        { period: 'night' as const, group: nightGroup, weight: nightGroup.reduce((a, b) => a + b.score, 0) },
         { period: 'morning' as const, group: morningGroup, weight: morningGroup.reduce((a, b) => a + b.score, 0) },
+        { period: 'night' as const, group: nightGroup, weight: nightGroup.reduce((a, b) => a + b.score, 0) },
         { period: 'evening' as const, group: eveningGroup, weight: eveningGroup.reduce((a, b) => a + b.score, 0) },
         { period: 'day' as const, group: dayGroup, weight: dayGroup.reduce((a, b) => a + b.score, 0) }
       ].filter((c) => c.group.length > 0);
