@@ -79,6 +79,8 @@ export interface DayForecast {
     text: string;
     roundClouds: number;
     moonImpact: string;
+    hasNightFog?: boolean;
+    nightFogTip?: string;
   };
   hourly: HourlyWeather[];
 }
@@ -724,6 +726,21 @@ export class WeatherEngine {
       } catch (e) {}
     });
 
+    let minNightVisibility = 99999;
+    let hasNightFog = false;
+    let hasNightMist = false;
+
+    nightHours.forEach((h) => {
+      if (typeof h.visibility === 'number' && h.visibility < minNightVisibility) {
+        minNightVisibility = h.visibility;
+      }
+      if (h.weatherCode === 45 || h.weatherCode === 48 || (typeof h.visibility === 'number' && h.visibility <= 1000)) {
+        hasNightFog = true;
+      } else if (typeof h.visibility === 'number' && h.visibility <= 3000) {
+        hasNightMist = true;
+      }
+    });
+
     let points = 100;
     if (roundClouds <= 10) points -= roundClouds * 0.5;
     else if (roundClouds <= 30) points -= 5 + (roundClouds - 10) * 1.0;
@@ -750,13 +767,29 @@ export class WeatherEngine {
       moonImpact += ' • Bemærk: Lyse nætter forhindrer kulsort astronomisk mørke';
     }
 
+    // Hvis der er tåge i nattetimerne, blokerer det stjernekig fuldstændigt
+    let nightFogTip = '';
+    if (hasNightFog) {
+      points = Math.min(points, 15);
+      nightFogTip =
+        'Tågen blokerer stjernehimlen, men gadelygter, neonskilte og billygter danner filmiske lyskegler (volumetrisk lys) og en stemningsfuld noir-æstetik på tomme gader og stier.';
+    } else if (hasNightMist) {
+      points = Math.min(points, 45);
+      nightFogTip =
+        'Let tågedis nær jorden kan svække lavtstående stjerner, men giver smukke glorier omkring gadelamper og lyskilder.';
+    }
+
     const finalScore = Math.min(100, Math.max(0, Math.round(points)));
 
     let status = 'Ugunstig';
     let icon = '☁️';
     let text = '';
 
-    if (roundClouds >= 75) {
+    if (hasNightFog) {
+      status = 'Ugunstig';
+      icon = '🌫️';
+      text = `Tæt nattetåge (sigtdybde ca. ${Math.round(minNightVisibility)}m) dækker natten og blokerer stjernehimlen fuldstændigt.`;
+    } else if (roundClouds >= 75) {
       status = 'Ugunstig';
       icon = '☁️';
       text = `Tæt skydække (${roundClouds}%) dækker himlen i nat.`;
@@ -764,10 +797,12 @@ export class WeatherEngine {
       status = 'Svag';
       icon = '⛅';
       text = `Overvejende skyet (${roundClouds}%). Kun spredte kighuller til enkelte klare stjerner.`;
-    } else if (roundClouds >= 25) {
+    } else if (roundClouds >= 25 || hasNightMist) {
       status = 'Moderat';
       icon = '✨';
-      text = `Gode observationsforhold med lette slørskyer (${roundClouds}%).`;
+      text = hasNightMist
+        ? `Lette slørskyer (${roundClouds}%) og tågedis nær jorden svækker de svageste stjerner.`
+        : `Gode observationsforhold med lette slørskyer (${roundClouds}%).`;
     } else {
       status = 'Fremragende';
       icon = '🌌';
@@ -780,7 +815,9 @@ export class WeatherEngine {
       icon,
       text,
       roundClouds,
-      moonImpact
+      moonImpact,
+      hasNightFog,
+      nightFogTip: nightFogTip || undefined
     };
   }
 

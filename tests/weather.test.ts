@@ -383,6 +383,60 @@ describe('WeatherEngine - Fotografiske vurderingsmodeller', () => {
     expect(astroScore.text).toContain('0%');
   });
 
+  it('Reducerer Astro-score og rådgiver om nattåge og gadelys når tåge dækker nattetimerne', () => {
+    const makeFogNightHour = (hour: number): HourlyWeather => ({
+      time: `2026-10-21T${String(hour).padStart(2, '0')}:00`,
+      hour,
+      temp: 4,
+      apparentTemp: 3,
+      humidity: 98,
+      dewPoint: 3.8,
+      spread: 0.2,
+      precipProb: 0,
+      precipMm: 0,
+      weatherCode: 45, // Tåge
+      weatherDesc: 'Tåge',
+      weatherIcon: '🌫️',
+      cloudTotal: 10, // Få almindelige skyer
+      cloudLow: 10,
+      cloudMid: 0,
+      cloudHigh: 0,
+      visibility: 200, // 200 m tæt tåge
+      windSpeed: 2,
+      windDir: 180,
+      windGusts: 3
+    });
+
+    const nightHours: HourlyWeather[] = [
+      makeFogNightHour(22),
+      makeFogNightHour(23),
+      makeFogNightHour(0),
+      makeFogNightHour(1),
+      makeFogNightHour(2),
+      makeFogNightHour(3),
+      makeFogNightHour(4)
+    ];
+
+    const dummySunNov = AstroCore.getSunTimes(new Date('2026-10-21T12:00:00Z'), 55.67, 12.56);
+    const dummyMoon = AstroCore.getMoonIllumination(new Date('2026-10-21T12:00:00Z'));
+
+    const astroScore = WeatherEngine.calculateAstroScore(
+      nightHours,
+      dummySunNov,
+      dummyMoon,
+      55.67,
+      12.56,
+      new Date('2026-10-21T12:00:00Z')
+    );
+
+    expect(astroScore.score).toBeLessThanOrEqual(20);
+    expect(astroScore.status).toBe('Ugunstig');
+    expect(astroScore.icon).toBe('🌫️');
+    expect(astroScore.hasNightFog).toBe(true);
+    expect(astroScore.text).toContain('Tæt nattetåge');
+    expect(astroScore.nightFogTip).toContain('gadelygter');
+  });
+
   describe('WeatherEngine - Tidshåndtering og overskredne tidspunkter (getEventTiming)', () => {
     const today = new Date('2026-10-21T14:00:00');
 

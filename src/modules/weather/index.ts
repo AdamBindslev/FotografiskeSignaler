@@ -491,13 +491,21 @@ export default class WeatherModule implements ModuleInstance {
           ${renderTimingBanner(astroTiming)}
           <div class="photo-card-top">
             <span class="photo-card-title">${astro.icon} Stjernehimmel (Astro)</span>
-            <span class="photo-score-badge ${getScoreClass(astro.score)}">${astro.score}/100 • ${astro.status}</span>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+              ${astro.hasNightFog ? `<span class="photo-type-badge badge-night-fog">Nattetåge</span>` : ''}
+              <span class="photo-score-badge ${getScoreClass(astro.score)}">${astro.score}/100 • ${astro.status}</span>
+            </div>
           </div>
           <div class="photo-card-time">
             Astronomisk mørke: ${sun.nightSky?.start ? `${TimeService.formatTime(sun.nightSky.start)} - ${TimeService.formatTime(sun.nightSky.end)}` : 'Ingen astro-nat (lyse nætter)'}
             ${astroTiming.isPassed ? '<span class="time-passed-tag">Natten er ovre</span>' : `• ${astroTiming.sub}`}
           </div>
           <div class="photo-card-desc">${astro.text}</div>
+          ${astro.nightFogTip ? `
+            <div class="photo-card-tip astro-fog-tip">
+              💡 <strong>Nattetåge:</strong> ${astro.nightFogTip}
+            </div>
+          ` : ''}
           ${renderPassedJump(astroTiming.isPassed, 'Astronomisk mørke for denne nat er ovre. Tjek næste nat?', 'Se stjernehimmel i morgen')}
           <div class="photo-card-footer">
             <span style="font-size:11px;color:var(--text-dim);">${astro.moonImpact}</span>
